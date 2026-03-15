@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import numpy as np
 import yfinance as yf
+import requests
 from werkzeug.utils import secure_filename
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -538,37 +539,54 @@ def download_excel():
         import pandas as pd
         from io import BytesIO
         
-        # 1. Users Data
+        # 1. Users Data - Safe Extraction
         users = User.query.all()
-        users_df = pd.DataFrame([{
-            "ID": u.id,
-            "Username": u.username,
-            "Email": u.email,
-            "Total Strategies": len(u.strategies),
-            "Total Backtests": len(u.backtests)
-        } for u in users])
+        user_list = []
+        for u in users:
+            user_list.append({
+                "ID": u.id,
+                "Username": getattr(u, 'username', 'N/A'),
+                "Email": getattr(u, 'email', 'N/A'),
+                "Total Strategies": len(u.strategies) if u.strategies else 0,
+                "Total Backtests": len(u.backtests) if u.backtests else 0
+            })
+        users_df = pd.DataFrame(user_list)
         
-        # 2. Strategies Data
+        # 2. Strategies Data - Safe Extraction
         strategies = Strategy.query.all()
-        strat_df = pd.DataFrame([{
-            "ID": s.id,
-            "Author": s.author.username if s.author else "Deleted User",
-            "Name": s.name,
-            "Type": s.strategy_type,
-            "Created At": s.created_at.strftime("%Y-%m-%d %H:%M")
-        } for s in strategies])
+        strat_list = []
+        for s in strategies:
+            strat_list.append({
+                "ID": s.id,
+                "Author": s.author.username if s.author else "System",
+                "Name": s.name,
+                "Type": s.strategy_type,
+                "Created At": s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "N/A"
+            })
+        strat_df = pd.DataFrame(strat_list)
         
-        # 3. Backtest Results Data
+        # 3. Backtest Results Data - Enhanced & Robust
         results = BacktestResult.query.all()
-        results_df = pd.DataFrame([{
-            "ID": r.id,
-            "Author": r.author.username if r.author else "Deleted User",
-            "Symbol": r.symbol,
-            "Period": r.period,
-            "Interval": r.interval,
-            "Profit": f"{r.total_return}%",
-            "Run At": r.run_at.strftime("%Y-%m-%d %H:%M")
-        } for r in results])
+        backtest_list = []
+        for r in results:
+            try:
+                m = json.loads(r.metrics) if r.metrics else {}
+            except:
+                m = {}
+            
+            backtest_list.append({
+                "ID": r.id,
+                "Author": r.author.username if r.author else "System",
+                "Symbol": r.symbol,
+                "Period": r.period if r.period else "N/A",
+                "Win Rate": f"{m.get('win_rate', 0):.1f}%",
+                "Return (%)": f"{m.get('total_return_pct', 0):+.2f}%",
+                "Final Capital": m.get('final_capital', 0),
+                "Total Trades": m.get('total_trades', 0),
+                "Max Drawdown": f"{m.get('max_drawdown_pct', 0):.2f}%",
+                "Run At": r.run_at.strftime("%Y-%m-%d %H:%M") if r.run_at else "N/A"
+            })
+        results_df = pd.DataFrame(backtest_list)
         
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -576,7 +594,7 @@ def download_excel():
             strat_df.to_excel(writer, index=False, sheet_name='All Strategies')
             results_df.to_excel(writer, index=False, sheet_name='Backtest History')
             
-            # Simple Column width auto-fit
+            # Auto-adjust columns width
             for sheetname in writer.sheets:
                 worksheet = writer.sheets[sheetname]
                 for col in worksheet.columns:
@@ -586,16 +604,14 @@ def download_excel():
                         try:
                             if len(str(cell.value)) > max_length:
                                 max_length = len(str(cell.value))
-                        except:
-                            pass
-                    adjusted_width = (max_length + 2)
-                    worksheet.column_dimensions[column].width = adjusted_width
+                        except: pass
+                    worksheet.column_dimensions[column].width = max_length + 2
 
         output.seek(0)
         return send_file(
             output,
             as_attachment=True,
-            download_name=f"TradeEdge_Master_Report_{datetime.now().strftime('%Y%m%d')}.xlsx",
+            download_name=f"TradeEdge_Master_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     except Exception as e:
@@ -605,7 +621,6 @@ def download_excel():
 
 # ── API Endpoints ──────────────────────────────────────────────────────────────
 
-import requests
 
 @app.route("/api/market/search", methods=["GET"])
 @login_required
@@ -954,3 +969,4 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
