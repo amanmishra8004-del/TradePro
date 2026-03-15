@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}Strategy Builder{% endblock %}
+{% block page_title %}Strategy Builder{% endblock %}
+{% block breadcrumb %}Trading → Strategy Builder{% endblock %}
+
+{% block content %}
+<div class="strategy-layout">
+
+  <!-- Strategy Builder Form -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-code-branch"></i> Build a Strategy</h3>
+    </div>
+    <div class="card-body">
+      <div class="strategy-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Strategy Name</label>
+            <input type="text" id="stratName" class="form-input" placeholder="My SMA Crossover Strategy">
+          </div>
+          <div class="form-group">
+            <label>Strategy Type</label>
+            <select id="stratType" class="form-select" onchange="updateParamFields()">
+              <option value="sma">SMA Crossover</option>
+              <option value="rsi">RSI Mean Reversion</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- SMA Parameters -->
+        <div id="smaParams" class="param-section">
+          <h4 class="param-title"><i class="fas fa-wave-square"></i> SMA Crossover Parameters</h4>
+          <div class="strategy-rules-display">
+            <div class="rule-card buy">
+              <div class="rule-icon"><i class="fas fa-arrow-up"></i></div>
+              <div class="rule-content">
+                <strong>BUY SIGNAL</strong>
+                <p>When Fast SMA crosses <em>above</em> Slow SMA</p>
+              </div>
+            </div>
+            <div class="rule-card sell">
+              <div class="rule-icon"><i class="fas fa-arrow-down"></i></div>
+              <div class="rule-content">
+                <strong>SELL SIGNAL</strong>
+                <p>When Fast SMA crosses <em>below</em> Slow SMA</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fast SMA Period</label>
+              <input type="number" id="smaFast" class="form-input" value="50" min="1" max="500">
+              <span class="form-hint">Recommended: 20, 50</span>
+            </div>
+            <div class="form-group">
+              <label>Slow SMA Period</label>
+              <input type="number" id="smaSlow" class="form-input" value="200" min="1" max="500">
+              <span class="form-hint">Recommended: 100, 200</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RSI Parameters -->
+        <div id="rsiParams" class="param-section" style="display:none">
+          <h4 class="param-title"><i class="fas fa-wave-square"></i> RSI Strategy Parameters</h4>
+          <div class="strategy-rules-display">
+            <div class="rule-card buy">
+              <div class="rule-icon"><i class="fas fa-arrow-up"></i></div>
+              <div class="rule-content">
+                <strong>BUY SIGNAL</strong>
+                <p>When RSI crosses <em>above</em> oversold level</p>
+              </div>
+            </div>
+            <div class="rule-card sell">
+              <div class="rule-icon"><i class="fas fa-arrow-down"></i></div>
+              <div class="rule-content">
+                <strong>SELL SIGNAL</strong>
+                <p>When RSI crosses <em>above</em> overbought level</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>RSI Period</label>
+              <input type="number" id="rsiPeriod" class="form-input" value="14" min="2" max="50">
+            </div>
+            <div class="form-group">
+              <label>Oversold Level</label>
+              <input type="number" id="rsiOversold" class="form-input" value="30" min="1" max="49">
+            </div>
+            <div class="form-group">
+              <label>Overbought Level</label>
+              <input type="number" id="rsiOverbought" class="form-input" value="70" min="51" max="99">
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveStrategy()">
+            <i class="fas fa-floppy-disk"></i> Save Strategy
+          </button>
+          <button class="btn btn-ghost" onclick="clearForm()">
+            <i class="fas fa-eraser"></i> Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Strategies Table -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-list"></i> Saved Strategies</h3>
+      <button class="btn btn-sm btn-ghost" onclick="loadStrategies()">
+        <i class="fas fa-rotate-right"></i> Refresh
+      </button>
+    </div>
+    <div class="card-body no-pad">
+      <div id="strategiesList">
+        {% if strategies %}
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>Type</th><th>Parameters</th><th>Created</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="strategiesBody">
+            {% for s in strategies %}
+            <tr id="strat-{{ s.id }}">
+              <td><strong>{{ s.name }}</strong></td>
+              <td><span class="badge 
+                {% if s.strategy_type == 'sma' %}badge-blue
+                {% elif s.strategy_type == 'rsi' %}badge-orange
+                {% else %}badge-green{% endif %}">
+                {{ s.strategy_type.replace('_',' ').upper() }}
+              </span></td>
+              <td class="font-mono text-sm">
+                {% if s.strategy_type == 'sma' %}
+                  Fast={{ s.params.fast }}, Slow={{ s.params.slow }}
+                {% elif s.strategy_type == 'rsi' %}
+                  Period={{ s.params.rsi_period }}, Oversold={{ s.params.oversold }}, OB={{ s.params.overbought }}
+                {% else %}
+                  {{ s.params.symbol }} | {{ (s.params.indicators or []) | join(', ') }}
+                {% endif %}
+              </td>
+              <td class="text-muted">{{ s.created_at }}</td>
+              <td>
+                <button class="btn btn-xs btn-ghost" onclick="loadStrategy({{ s.id }}, '{{ s.strategy_type }}', {{ s.params | tojson }}, '{{ s.name }}')" title="Load">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="btn btn-xs btn-danger" onclick="deleteStrategy({{ s.id }})" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+                <a href="{{ url_for('backtesting') }}" class="btn btn-xs btn-primary" title="Backtest">
+                  <i class="fas fa-flask"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" id="noStrategies">
+          <i class="fas fa-code-branch"></i>
+          <p>No strategies saved yet. Build your first strategy above!</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateParamFields() {
+  const type = document.getElementById('stratType').value;
+  document.getElementById('smaParams').style.display = type === 'sma' ? 'block' : 'none';
+  document.getElementById('rsiParams').style.display = type === 'rsi' ? 'block' : 'none';
+}
+
+function getParams() {
+  const type = document.getElementById('stratType').value;
+  if (type === 'sma') {
+    return { fast: parseInt(document.getElementById('smaFast').value), slow: parseInt(document.getElementById('smaSlow').value) };
+  } else {
+    return {
+      rsi_period: parseInt(document.getElementById('rsiPeriod').value),
+      oversold: parseFloat(document.getElementById('rsiOversold').value),
+      overbought: parseFloat(document.getElementById('rsiOverbought').value)
+    };
+  }
+}
+
+async function saveStrategy() {
+  const name = document.getElementById('stratName').value.trim();
+  if (!name) { showToast('Please enter a strategy name', 'warning'); return; }
+  const type = document.getElementById('stratType').value;
+  const params = getParams();
+  const resp = await fetch('/api/strategy/save', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({name, strategy_type: type, params})
+  });
+  const data = await resp.json();
+  showToast(data.message || 'Saved!', 'success');
+  setTimeout(() => location.reload(), 800);
+}
+
+async function deleteStrategy(id) {
+  if (!confirm('Delete this strategy?')) return;
+  await fetch(`/api/strategy/delete/${id}`, {method:'DELETE'});
+  document.getElementById(`strat-${id}`)?.remove();
+  showToast('Strategy deleted', 'success');
+}
+
+function loadStrategy(id, type, params, name) {
+  document.getElementById('stratName').value = name;
+  document.getElementById('stratType').value = type;
+  updateParamFields();
+  if (type === 'sma') {
+    document.getElementById('smaFast').value = params.fast;
+    document.getElementById('smaSlow').value = params.slow;
+  } else {
+    document.getElementById('rsiPeriod').value = params.rsi_period;
+    document.getElementById('rsiOversold').value = params.oversold;
+    document.getElementById('rsiOverbought').value = params.overbought;
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+  showToast('Strategy loaded into editor', 'info');
+}
+
+function clearForm() {
+  document.getElementById('stratName').value = '';
+  document.getElementById('smaFast').value = 50;
+  document.getElementById('smaSlow').value = 200;
+  document.getElementById('rsiPeriod').value = 14;
+  document.getElementById('rsiOversold').value = 30;
+  document.getElementById('rsiOverbought').value = 70;
+}
+</script>
+{% endblock %}

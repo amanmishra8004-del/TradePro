@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel{% endblock %}
+{% block page_title %}Admin Control Center{% endblock %}
+{% block breadcrumb %}Platform Management{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+  <!-- Header -->
+  <div class="card glass-panel" style="margin-bottom: 5px;">
+    <div class="card-body" style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 class="gradient-text-animated" style="font-size: 24px; font-weight: 700; margin-bottom: 5px;">TradeEdge Admin</h2>
+        <p style="color: var(--text-muted); font-size: 13px;">Welcome back, {{ current_user.username }}. Here is the complete database overview.</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <a href="{{ url_for('download_excel') }}" class="btn btn-secondary" style="padding: 12px 24px; background: #217346 !important;">
+          <i class="fas fa-file-excel"></i> Download Master Excel Report
+        </a>
+        <a href="{{ url_for('download_db') }}" class="btn btn-primary" style="padding: 12px 24px;">
+          <i class="fas fa-download"></i> Download Local DB (.sqlite3)
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon blue" style="background: rgba(88,166,255,0.1) !important;"><i class="fas fa-users"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value">{{ users|length }}</div>
+      </div>
+    </div>
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon green" style="background: rgba(0,212,170,0.1) !important;"><i class="fas fa-code-branch"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Total Strategies</div>
+        <div class="stat-value">{{ strategies|length }}</div>
+      </div>
+    </div>
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon purple" style="background: rgba(188,140,255,0.1) !important;"><i class="fas fa-flask"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Total Backtests</div>
+        <div class="stat-value">{{ results|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-users"></i> Platform Users</h3>
+    </div>
+    <div class="card-body no-pad table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Strategies</th>
+            <th>Backtests</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>{{ u.id }}</td>
+            <td style="font-weight: 600;"><i class="fas fa-user-circle" style="color: var(--text-muted); margin-right: 5px;"></i> {{ u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.strategies|length }}</td>
+            <td>{{ u.backtests|length }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Strategies & Results (Two Col) -->
+  <div class="two-col-grid">
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-code-branch"></i> All Strategies</h3>
+      </div>
+      <div class="card-body no-pad table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr><th>Author</th><th>Name</th><th>Type</th></tr>
+          </thead>
+          <tbody>
+            {% for s in strategies %}
+            <tr>
+              <td>{{ s.author.username }}</td>
+              <td>{{ s.name }}</td>
+              <td><span class="badge badge-orange">{{ s.strategy_type.upper() }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center" style="padding: 20px;">No strategies found</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-flask"></i> All Backtests</h3>
+      </div>
+      <div class="card-body no-pad table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr><th>Author</th><th>Symbol</th><th>Period</th></tr>
+          </thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td>{{ r.author.username }}</td>
+              <td><span class="badge badge-blue">{{ r.symbol }}</span></td>
+              <td>{{ r.period }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="text-center" style="padding: 20px;">No backtests found</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

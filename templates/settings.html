@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+{% block breadcrumb %}Settings{% endblock %}
+
+{% block content %}
+<div class="settings-layout">
+
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-palette"></i> Display Settings</h3></div>
+    <div class="card-body">
+      <div class="settings-row">
+        <div class="setting-info">
+          <strong>Theme</strong>
+          <p>Platform currently uses the professional dark theme optimized for trading.</p>
+        </div>
+        <div class="setting-control">
+          <span class="badge badge-green">Dark Mode Active</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="setting-info">
+          <strong>Chart Style</strong>
+          <p>Candlestick charts with Plotly interactive engine.</p>
+        </div>
+        <div class="setting-control">
+          <span class="badge badge-blue">Candlestick</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-database"></i> Data Settings</h3></div>
+    <div class="card-body">
+      <div class="settings-row">
+        <div class="setting-info">
+          <strong>Data Source</strong>
+          <p>Historical price data from Yahoo Finance API (yfinance).</p>
+        </div>
+        <div class="setting-control">
+          <span class="badge badge-green">Yahoo Finance</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="setting-info">
+          <strong>Database</strong>
+          <p>SQLite database stores strategies and backtest results locally.</p>
+        </div>
+        <div class="setting-control">
+          <span class="badge badge-blue">SQLite</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="setting-info">
+          <strong>Clear All Backtest Data</strong>
+          <p>Removes all stored backtest results from the database. Strategies are kept.</p>
+        </div>
+        <div class="setting-control">
+          <button class="btn btn-danger" onclick="if(confirm('Clear all backtest results?')) clearBtData()">
+            <i class="fas fa-trash"></i> Clear Data
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-user-circle"></i> Profile Settings</h3></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('settings') }}" enctype="multipart/form-data">
+        <input type="hidden" name="update_type" value="image">
+        <div class="settings-row" style="align-items: flex-start;">
+          <div class="setting-info">
+            <strong>Profile Image</strong>
+            <p>Click your avatar to upload a new one (PNG, JPG).</p>
+          </div>
+          <div class="setting-control" style="display:flex; flex-direction: column; gap:10px; align-items: flex-end;">
+            <label for="profileImageInput" style="cursor: pointer; position: relative;" title="Click to change profile picture">
+                <div class="avatar" style="width:70px; height:70px; font-size:28px; border: 2px solid var(--accent-blue); box-shadow: 0 0 15px rgba(88,166,255,0.2); transition: all 0.3s ease;" 
+                     onmouseover="this.style.transform='scale(1.05)'; this.style.borderColor='var(--accent-green)';" 
+                     onmouseout="this.style.transform='scale(1)'; this.style.borderColor='var(--accent-blue)';">
+                  {% if current_user.profile_image and current_user.profile_image != 'default.png' %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_image) }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                  {% else %}
+                    {{ current_user.username[0]|upper }}
+                  {% endif %}
+                </div>
+            </label>
+            <input type="file" id="profileImageInput" name="profile_image" accept="image/png, image/jpeg, image/gif" style="display:none;" onchange="document.getElementById('imgUpdateBtn').style.display='inline-block';">
+            <button type="submit" id="imgUpdateBtn" class="btn btn-primary" style="display:none; padding: 6px 12px; font-size: 13px;"><i class="fas fa-upload"></i> Save Image</button>
+          </div>
+        </div>
+      </form>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 20px 0;">
+      
+      <form method="POST" action="{{ url_for('settings') }}">
+        <input type="hidden" name="update_type" value="email">
+        <div class="settings-row">
+          <div class="setting-info">
+            <strong>Email Address</strong>
+            <p>Update your account email.</p>
+          </div>
+          <div class="setting-control" style="display: flex; gap: 10px;">
+            <input type="email" name="email" class="form-input" value="{{ current_user.email }}" required>
+            <button type="submit" class="btn btn-secondary">Update Email</button>
+          </div>
+        </div>
+      </form>
+
+      <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 20px 0;">
+      
+      <form method="POST" action="{{ url_for('settings') }}">
+        <input type="hidden" name="update_type" value="password">
+        <div class="settings-row">
+          <div class="setting-info">
+            <strong>Change Password</strong>
+            <p>Enter a new password (min. 6 characters) to secure your account.</p>
+          </div>
+          <div class="setting-control" style="display: flex; gap: 10px; flex-direction: column; align-items: flex-end;">
+            <input type="password" name="new_password" class="form-input" placeholder="New Password" required minlength="6">
+            <button type="submit" class="btn btn-secondary">Update Password</button>
+          </div>
+        </div>
+      </form
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-info-circle"></i> About Trade Edge</h3></div>
+    <div class="card-body">
+      <div class="about-grid">
+        <div class="about-item">
+          <span class="about-label">Version</span>
+          <span class="about-value">1.0.0</span>
+        </div>
+        <div class="about-item">
+          <span class="about-label">Backend</span>
+          <span class="about-value">Python Flask</span>
+        </div>
+        <div class="about-item">
+          <span class="about-label">Data Analysis</span>
+          <span class="about-value">Pandas + pandas-ta</span>
+        </div>
+        <div class="about-item">
+          <span class="about-label">Charts</span>
+          <span class="about-value">Plotly 5.x</span>
+        </div>
+        <div class="about-item">
+          <span class="about-label">Data Source</span>
+          <span class="about-value">Yahoo Finance (yfinance)</span>
+        </div>
+        <div class="about-item">
+          <span class="about-label">Database</span>
+          <span class="about-value">SQLite (SQLAlchemy)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function clearBtData() {
+  showToast('Feature coming soon – manually delete database/db.sqlite3 to reset.', 'info');
+}
+</script>
+{% endblock %}

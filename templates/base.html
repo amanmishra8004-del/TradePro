@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Trade Edge{% endblock %} | Trading Platform</title>
+  <meta name="description" content="Trade Edge – Professional Trading Analysis, Risk Management & Backtesting Platform">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <!-- Mobile Overlay -->
+  <div id="mobileOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:900; backdrop-filter:blur(4px);" onclick="toggleMobileSidebar()"></div>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo" onclick="window.location.href='{{ url_for('dashboard') }}';" style="cursor:pointer">
+        <span class="logo-icon"><i class="fas fa-chart-line"></i></span>
+        <span class="logo-text">Trade<span class="logo-accent">Edge</span></span>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if current_user.is_authenticated %}
+      <div class="nav-section-label">MAIN</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('market') }}" class="nav-item {% if request.endpoint == 'market' %}active{% endif %}">
+        <i class="fas fa-chart-candlestick"></i>
+        <span>Market Data</span>
+      </a>
+
+      <div class="nav-section-label">TRADING</div>
+      <a href="{{ url_for('strategy_builder') }}" class="nav-item {% if request.endpoint == 'strategy_builder' %}active{% endif %}">
+        <i class="fas fa-code-branch"></i>
+        <span>Strategy Builder</span>
+      </a>
+      <a href="{{ url_for('backtesting') }}" class="nav-item {% if request.endpoint == 'backtesting' %}active{% endif %}">
+        <i class="fas fa-flask"></i>
+        <span>Backtesting</span>
+      </a>
+      <a href="{{ url_for('risk_management') }}" class="nav-item {% if request.endpoint == 'risk_management' %}active{% endif %}">
+        <i class="fas fa-shield-halved"></i>
+        <span>Risk Management</span>
+      </a>
+
+      <div class="nav-section-label">ANALYTICS</div>
+      <a href="{{ url_for('reports') }}" class="nav-item {% if request.endpoint == 'reports' %}active{% endif %}">
+        <i class="fas fa-file-chart-column"></i>
+        <span>Reports</span>
+      </a>
+      <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint == 'settings' %}active{% endif %}">
+        <i class="fas fa-gear"></i>
+        <span>Settings</span>
+      </a>
+
+      {% if current_user.username == 'shivam' %}
+      <div class="nav-section-label" style="color: var(--accent-red);">ADMIN</div>
+      <a href="{{ url_for('admin_panel') }}" class="nav-item {% if request.endpoint == 'admin_panel' %}active{% endif %}" style="border-left-color: var(--accent-red);">
+        <i class="fas fa-user-shield" style="color: var(--accent-red);"></i>
+        <span style="color: var(--accent-red); font-weight: 700;">Admin Panel</span>
+      </a>
+      {% endif %}
+
+      {% else %}
+      <div class="nav-section-label">WELCOME</div>
+      <a href="{{ url_for('login') }}" class="nav-item {% if request.endpoint == 'login' %}active{% endif %}">
+        <i class="fas fa-right-to-bracket"></i>
+        <span>Login</span>
+      </a>
+      <a href="{{ url_for('register') }}" class="nav-item {% if request.endpoint == 'register' %}active{% endif %}">
+        <i class="fas fa-user-plus"></i>
+        <span>Register</span>
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="market-status">
+        <span class="status-dot" id="marketStatusDot"></span>
+        <span id="marketStatusText">Loading...</span>
+      </div>
+      <div class="sidebar-time" id="sidebarTime"></div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main-wrapper" id="mainWrapper">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn-icon mobile-menu-btn" style="margin-right:15px;" onclick="toggleMobileSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <button class="btn-icon" onclick="history.back()" title="Go Back">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div>
+            <h2 class="page-title">{% block page_title %}Dashboard{% endblock %}</h2>
+            <div class="breadcrumb">{% block breadcrumb %}Home{% endblock %}</div>
+          </div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="ticker-classic" id="tickerTape">
+          <div class="ticker-item loading">Initializing Market Feed...</div>
+        </div>
+        <div class="topbar-actions">
+          <select id="currencySelector" class="form-select" style="width: auto; padding: 4px 10px; font-size: 13px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: var(--text-primary);" onchange="updateGlobalCurrency(this.value)">
+            <option value="USD">USD ($)</option>
+            <option value="INR">INR (₹)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+          </select>
+          <button class="btn-icon" title="Refresh Page" onclick="manualRefresh()">
+            <i class="fas fa-arrows-rotate"></i>
+          </button>
+          
+          {% if current_user.is_authenticated %}
+            <div class="profile-dropdown">
+              <div class="avatar-wrapper" onclick="this.parentElement.classList.toggle('active')">
+                <div class="avatar">
+                  {% if current_user.profile_image and current_user.profile_image != 'default.png' %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_image) }}" alt="Avatar">
+                  {% else %}
+                    {{ current_user.username[0]|upper }}
+                  {% endif %}
+                </div>
+                <div class="avatar-status online"></div>
+              </div>
+              
+              <div class="dropdown-menu">
+                <div class="dropdown-header">
+                  <div class="user-info">
+                    <strong>{{ current_user.username }}</strong>
+                    <span>{{ current_user.email }}</span>
+                  </div>
+                </div>
+                <div class="dropdown-divider"></div>
+                <a href="{{ url_for('settings') }}" class="dropdown-item">
+                  <i class="fas fa-user-gear"></i> Profile Settings
+                </a>
+                <a href="{{ url_for('reports') }}" class="dropdown-item">
+                  <i class="fas fa-clock-rotate-left"></i> My Activity
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="{{ url_for('logout') }}" class="dropdown-item logout-link">
+                  <i class="fas fa-power-off"></i> Logout
+                </a>
+              </div>
+            </div>
+          {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">Login</a>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">
+              <i class="fas fa-{{ 'check-circle' if category=='success' else 'exclamation-triangle' }}"></i>
+              {{ message }}
+              <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page content -->
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Global loading overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+      <div class="spinner-ring"></div>
+      <div class="spinner-ring"></div>
+      <div class="spinner-ring"></div>
+      <p class="loading-text" id="loadingText">Fetching data...</p>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sb = document.getElementById('sidebar');
+      const mw = document.getElementById('mainWrapper');
+      sb.classList.toggle('collapsed');
+      mw.classList.toggle('full-width');
+      
+      // Save preference
+      localStorage.setItem('sidebarCollapsed', sb.classList.contains('collapsed'));
+    }
+
+    function toggleMobileSidebar() {
+      const sb = document.getElementById('sidebar');
+      const ov = document.getElementById('mobileOverlay');
+      sb.classList.toggle('mobile-open');
+      ov.style.display = sb.classList.contains('mobile-open') ? 'block' : 'none';
+      document.body.style.overflow = sb.classList.contains('mobile-open') ? 'hidden' : 'auto';
+    }
+
+    // Load preference
+    document.addEventListener('DOMContentLoaded', () => {
+      const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+      if(isCollapsed && window.innerWidth > 900) {
+        document.getElementById('sidebar').classList.add('collapsed');
+        document.getElementById('mainWrapper').classList.add('full-width');
+      }
+      
+      // Update titles for collapsed mode
+      const logoText = document.querySelector('.logo-text');
+      if(logoText) {
+        // observer for media queries could be here
+      }
+    });
+
+    // Auto-refresh logic (optional, but requested 'refresh' feeling)
+    function manualRefresh() {
+      showLoading('Refreshing data...');
+      location.reload();
+    }
+  </script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

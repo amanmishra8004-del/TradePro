@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade Edge | Professional Algo Trading Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #050810;
+            --accent-green: #00d4aa;
+            --accent-blue: #58a6ff;
+            --accent-purple: #bc8cff;
+            --text-primary: #f0f6fc;
+            --text-muted: #8b949e;
+            --border: rgba(255,255,255,0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* ── Background Effects ── */
+        .bg-grid {
+            position: fixed; inset: 0;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+        .glow {
+            position: fixed;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(0,212,170,0.1) 0%, transparent 70%);
+            top: -200px; left: -200px;
+            z-index: -1;
+            filter: blur(100px);
+            animation: move 20s infinite alternate;
+        }
+        @keyframes move {
+            from { transform: translate(0,0); }
+            to { transform: translate(100px, 100px); }
+        }
+
+        /* ── Navbar ── */
+        nav {
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky; top: 0;
+            z-index: 100;
+            background: rgba(5,8,16,0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            display: flex; align-items: center; gap: 12px;
+            font-size: 26px; font-weight: 800;
+            color: #fff;
+        }
+        .logo-icon {
+            width: 42px; height: 42px;
+            background: rgba(0,212,170,0.1);
+            border: 1px solid var(--accent-green);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent-green);
+            box-shadow: 0 0 20px rgba(0,212,170,0.2);
+        }
+        .nav-links { display: flex; gap: 30px; align-items: center; }
+        .nav-link { color: var(--text-muted); text-decoration: none; font-weight: 500; transition: 0.3s; }
+        .nav-link:hover { color: #fff; }
+
+        /* ── Components ── */
+        .btn {
+            padding: 12px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            border: none;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary {
+            background: var(--accent-green);
+            color: #050810;
+            box-shadow: 0 4px 20px rgba(0,212,170,0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(0,212,170,0.5);
+        }
+        .btn-outline {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: #fff;
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 120px 5% 80px;
+            text-align: center;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .hero-tag {
+            background: rgba(88,166,255,0.1);
+            color: var(--accent-blue);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 13px; font-weight: 700;
+            margin-bottom: 24px;
+            border: 1px solid rgba(88,166,255,0.2);
+            animation: fadeInDown 0.8s ease;
+        }
+        .hero h1 {
+            font-size: clamp(40px, 8vw, 84px);
+            font-weight: 800;
+            line-height: 0.95;
+            letter-spacing: -3px;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s 0.2s ease backwards;
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #00d4aa, #58a6ff, #bc8cff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: clamp(18px, 2vw, 22px);
+            color: var(--text-muted);
+            max-width: 700px;
+            margin-bottom: 40px;
+            line-height: 1.5;
+            animation: fadeInUp 0.8s 0.4s ease backwards;
+        }
+        .hero-btns {
+            display: flex; gap: 20px;
+            animation: fadeInUp 0.8s 0.6s ease backwards;
+        }
+
+        /* ── Features ── */
+        .section-title {
+            text-align: center; margin-bottom: 60px;
+        }
+        .section-title h2 { font-size: 36px; margin-bottom: 10px; }
+        .section-title p { color: var(--text-muted); }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            padding: 0 5% 100px;
+        }
+        .f-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: 24px;
+            transition: 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .f-card:hover { border-color: var(--accent-green); background: rgba(0,212,170,0.03); transform: translateY(-10px); }
+        .f-icon {
+            font-size: 32px; color: var(--accent-green); margin-bottom: 20px;
+        }
+        .f-card h3 { font-size: 22px; margin-bottom: 12px; }
+        .f-card p { color: var(--text-muted); line-height: 1.6; }
+
+        /* ── Preview Wrapper ── */
+        .preview-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            margin: 80px auto;
+            border-radius: 24px;
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(88,166,255,0.2), rgba(0,212,170,0.2));
+            box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+            animation: zoomIn 1s 1s ease backwards;
+        }
+        .preview-img {
+            width: 100%; border-radius: 16px;
+            display: block; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* ── Footer ── */
+        footer {
+            padding: 80px 5% 40px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+        .footer-links { margin-bottom: 30px; display: flex; justify-content: center; gap: 40px; }
+        .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; }
+        .copyright { font-size: 13px; color: var(--text-muted); opacity: 0.6; }
+
+        /* ── Keyframes ── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* ── Mobile Responsive ── */
+        @media (max-width: 768px) {
+            nav { padding: 15px 20px; }
+            .nav-links { display: none; }
+            .hero { padding-top: 80px; }
+            .hero h1 { letter-spacing: -2px; }
+            .hero-btns { flex-direction: column; width: 100%; }
+            .btn { width: 100%; justify-content: center; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="bg-grid"></div>
+    <div class="glow"></div>
+
+    <nav>
+        <div class="logo">
+            <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+            <span>Trade<span style="color: var(--accent-green)">Edge</span></span>
+        </div>
+        <div class="nav-links">
+            <a href="#features" class="nav-link">Features</a>
+            <a href="{{ url_for('login') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline" style="padding: 8px 20px;">Login</a>
+            <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding: 8px 24px;">Join Now</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-tag">🚀 Next-Generation Trading Platform</div>
+        <h1>Master The <br><span class="gradient-text">Market's Pulse</span></h1>
+        <p>Advanced algorithmic tools for strategy building, risk evaluation, and high-frequency backtesting. Designed for elite traders.</p>
+        
+        <div class="hero-btns">
+            <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding: 16px 40px; font-size: 18px;">
+                Get Started Free <i class="fas fa-arrow-right"></i>
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline" style="padding: 16px 40px; font-size: 18px;">
+                Log In
+            </a>
+        </div>
+
+        <div class="preview-wrapper">
+            <!-- Glassmorphism Preview Card -->
+            <div style="background: #0d1117; padding: 20px; border-radius: 16px; min-height: 400px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+                    <div style="display: flex; gap: 6px;"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f56"></div><div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div><div style="width:10px;height:10px;border-radius:50%;background:#27c93f"></div></div>
+                    <div style="font-family: 'JetBrains Mono'; font-size: 12px; color: var(--accent-green)">STATION ACTIVE // 127.0.0.1</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; flex: 1;">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="background: rgba(255,255,255,0.05); height: 80px; border-radius: 12px; border: 1px solid var(--border)"></div>
+                        <div style="background: rgba(255,255,255,0.05); height: 80px; border-radius: 12px; border: 1px solid var(--border)"></div>
+                        <div style="background: rgba(255,255,255,0.05); height: 80px; border-radius: 12px; border: 1px solid var(--border)"></div>
+                    </div>
+                    <div style="background: rgba(0,212,170,0.05); border: 1px dashed var(--accent-green); border-radius: 12px; position: relative; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-chart-area" style="font-size: 100px; color: var(--accent-green); opacity: 0.1"></i>
+                        <div style="position: absolute; bottom: 20px; left: 20px; right: 20px; height: 2px; background: var(--accent-green); opacity: 0.3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="section-title">
+            <h2>Hedge-Fund Grade Tools</h2>
+            <p>Everything you need to compete at the highest level</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="f-card">
+                <div class="f-icon"><i class="fas fa-microchip"></i></div>
+                <h3>Strategy Builder</h3>
+                <p>Build complex trading rules without writing a single line of code. Connect indicators and logic seamlessly.</p>
+            </div>
+            <div class="f-card">
+                <div class="f-icon"><i class="fas fa-bolt"></i></div>
+                <h3>Instant Backtesting</h3>
+                <p>Simulate years of market data in milliseconds. Detailed reports on Sharpe ratio, drawdown, and win rates.</p>
+            </div>
+            <div class="f-card">
+                <div class="f-icon"><i class="fas fa-shield"></i></div>
+                <h3>Risk Control</h3>
+                <p>Advanced calculators to manage your exposure. Automatically calculate position sizes based on your risk tolerance.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="justify-content: center; margin-bottom: 20px;">
+            <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+            <span>Trade<span style="color: var(--accent-green)">Edge</span></span>
+        </div>
+        <div class="footer-links">
+            <a href="#">About</a>
+            <a href="#">Terms</a>
+            <a href="#">Contact</a>
+            <a href="#">Documentation</a>
+        </div>
+        <p class="copyright">&copy; 2026 Trade Edge Systems. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

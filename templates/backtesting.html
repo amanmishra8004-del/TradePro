@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+{% block title %}Backtesting{% endblock %}
+{% block page_title %}Backtesting Engine{% endblock %}
+{% block breadcrumb %}Trading → Backtesting{% endblock %}
+
+{% block content %}
+<div class="backtest-layout">
+
+  <!-- Config Panel -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-sliders"></i> Backtest Configuration</h3>
+    </div>
+    <div class="card-body">
+      <!-- Mini Preview Chart -->
+      <div id="btMiniChartContainer" class="mini-chart" style="height: 120px; margin-bottom: 20px; display: none; position: relative;">
+        <div id="btMiniChart" style="height: 100%; width: 100%;"></div>
+        <div style="position: absolute; top: 10px; left: 10px; pointer-events: none;">
+          <span id="miniSymbol" style="font-weight: 700; font-size: 14px; text-shadow: 0 0 10px #000;">AAPL</span>
+          <span id="miniPrice" style="font-family: var(--font-mono); font-size: 13px; margin-left:10px; text-shadow: 0 0 10px #000;">$0.00</span>
+        </div>
+      </div>
+
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Symbol</label>
+          <div style="position: relative;">
+            <input type="text" id="btSymbolSearchInput" class="form-input bhokali-glow-input" placeholder="Search 100k+ Stocks, Crypto..." autocomplete="off">
+            <input type="hidden" id="btSymbol" value="AAPL">
+            <div id="btSearchResults" class="search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#0d1117; border:1px solid rgba(255,255,255,0.1); border-radius:12px; z-index:100; max-height:250px; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding: 5px; margin-top: 5px;">
+              <!-- Results here -->
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Period</label>
+          <select id="btPeriod" class="form-select">
+            <option value="6mo">6 Months</option>
+            <option value="1y">1 Year</option>
+            <option value="2y" selected>2 Years</option>
+            <option value="5y">5 Years</option>
+            <option value="10y">10 Years</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Strategy Type</label>
+          <select id="btStratType" class="form-select" onchange="toggleBtParams()">
+            <option value="sma">SMA Crossover</option>
+            <option value="rsi">RSI Strategy</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SMA Params -->
+      <div id="btSmaParams" class="param-section">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fast SMA</label>
+            <input type="number" id="btSmaFast" class="form-input" value="50">
+          </div>
+          <div class="form-group">
+            <label>Slow SMA</label>
+            <input type="number" id="btSmaSlow" class="form-input" value="200">
+          </div>
+        </div>
+      </div>
+
+      <!-- RSI Params -->
+      <div id="btRsiParams" class="param-section" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label>RSI Period</label>
+            <input type="number" id="btRsiPeriod" class="form-input" value="14">
+          </div>
+          <div class="form-group">
+            <label>Oversold</label>
+            <input type="number" id="btRsiOversold" class="form-input" value="30">
+          </div>
+          <div class="form-group">
+            <label>Overbought</label>
+            <input type="number" id="btRsiOverbought" class="form-input" value="70">
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+      <h4 class="section-label">Risk Settings</h4>
+      <div class="form-grid-4">
+        <div class="form-group">
+          <label>Initial Capital ($)</label>
+          <input type="number" id="btCapital" class="form-input" value="100000" min="1000">
+        </div>
+        <div class="form-group">
+          <label>Risk per Trade (%)</label>
+          <input type="number" id="btRiskPct" class="form-input" value="1" min="0.1" max="100" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Stop Loss (%)</label>
+          <input type="number" id="btStopLoss" class="form-input" value="2" min="0.1" max="50" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Take Profit (%)</label>
+          <input type="number" id="btTakeProfit" class="form-input" value="4" min="0.1" max="100" step="0.1">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary btn-lg" id="runBtBtn" onclick="runBacktest()">
+          <i class="fas fa-play"></i> Run Backtest
+        </button>
+        <button class="btn btn-ghost" onclick="resetResults()">
+          <i class="fas fa-rotate-left"></i> Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results (hidden until run) -->
+  <div id="btResults" style="display:none">
+
+    <!-- Metrics Cards -->
+    <div class="metrics-grid" id="metricsGrid"></div>
+
+    <!-- Charts Row -->
+    <div class="two-col-grid">
+      <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-area"></i> Equity Curve</h3></div>
+        <div class="card-body no-pad-top"><div id="equityChart" style="height:320px"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Trade P&amp;L Distribution</h3></div>
+        <div class="card-body no-pad-top"><div id="tradeDistChart" style="height:320px"></div></div>
+      </div>
+    </div>
+
+    <!-- Trade History -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-list-ol"></i> Trade History</h3>
+        <button class="btn btn-sm btn-primary" id="exportBtn" onclick="exportCSV()">
+          <i class="fas fa-file-csv"></i> Export CSV
+        </button>
+      </div>
+      <div class="card-body no-pad">
+        <div class="table-scroll">
+          <table class="data-table" id="tradeTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entry Date</th>
+                <th>Exit Date</th>
+                <th>Entry Price</th>
+                <th>Exit Price</th>
+                <th>Qty</th>
+                <th>P&amp;L ($)</th>
+                <th>Return %</th>
+                <th>Exit Reason</th>
+              </tr>
+            </thead>
+            <tbody id="tradeBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Previous Results -->
+  {% if results %}
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-history"></i> Previous Runs</h3></div>
+    <div class="card-body no-pad">
+      <table class="data-table">
+        <thead><tr><th>ID</th><th>Symbol</th><th>Period</th><th>Return</th><th>Trades</th><th>Sharpe</th><th>Drawdown</th><th>Run At</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for r in results %}
+          <tr>
+            <td class="text-muted">#{{ r.id }}</td>
+            <td><span class="badge badge-blue">{{ r.symbol }}</span></td>
+            <td>{{ r.period }}</td>
+            <td class="{{ 'text-green' if r.metrics.total_return_pct >= 0 else 'text-red' }}">{{ '%+.2f'|format(r.metrics.total_return_pct) }}%</td>
+            <td>{{ r.metrics.total_trades }}</td>
+            <td>{{ r.metrics.sharpe_ratio }}</td>
+            <td class="text-red">{{ r.metrics.max_drawdown_pct }}%</td>
+            <td class="text-muted">{{ r.run_at }}</td>
+            <td>
+              <button class="btn btn-xs btn-ghost" onclick="loadPrevResult({{ r.id }})"><i class="fas fa-eye"></i></button>
+              <a href="/api/reports/export/{{ r.id }}" class="btn btn-xs btn-primary"><i class="fas fa-download"></i></a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentResultId = null;
+
+function toggleBtParams() {
+  const type = document.getElementById('btStratType').value;
+  document.getElementById('btSmaParams').style.display = type === 'sma' ? 'block' : 'none';
+  document.getElementById('btRsiParams').style.display = type === 'rsi' ? 'block' : 'none';
+}
+
+function getStratParams() {
+  const type = document.getElementById('btStratType').value;
+  if (type === 'sma') {
+    return { fast: parseInt(document.getElementById('btSmaFast').value), slow: parseInt(document.getElementById('btSmaSlow').value) };
+  } else {
+    return {
+      rsi_period: parseInt(document.getElementById('btRsiPeriod').value),
+      oversold: parseFloat(document.getElementById('btRsiOversold').value),
+      overbought: parseFloat(document.getElementById('btRsiOverbought').value)
+    };
+  }
+}
+
+async function runBacktest() {
+  const symbol = document.getElementById('btSymbol').value.trim().toUpperCase();
+  if (!symbol) {
+    const fallback = document.getElementById('btSymbolSearchInput').value.split(' - ')[0].trim();
+    if(fallback) return runWithSymbol(fallback.toUpperCase());
+    showToast('Please select a symbol', 'warning');
+    return;
+  }
+  
+  const payload = {
+    symbol: symbol,
+    period: document.getElementById('btPeriod').value,
+    strategy_type: document.getElementById('btStratType').value,
+    params: getStratParams(),
+    capital: parseFloat(document.getElementById('btCapital').value),
+    risk_pct: parseFloat(document.getElementById('btRiskPct').value),
+    stop_loss_pct: parseFloat(document.getElementById('btStopLoss').value),
+    take_profit_pct: parseFloat(document.getElementById('btTakeProfit').value),
+  };
+
+  showLoading(`Running backtest for ${payload.symbol}...`);
+  document.getElementById('runBtBtn').disabled = true;
+
+  try {
+    const resp = await fetch('/api/backtest/run', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    hideLoading();
+    document.getElementById('runBtBtn').disabled = false;
+
+    if (data.error) { showToast(data.error, 'error'); return; }
+
+    currentResultId = data.result_id;
+    renderResults(data);
+    showToast('Backtest complete!', 'success');
+  } catch(e) {
+    hideLoading();
+    document.getElementById('runBtBtn').disabled = false;
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function renderResults(data) {
+  const m = data.metrics;
+  const el = document.getElementById('btResults');
+  el.style.display = 'block';
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+
+  // Metrics cards
+  const retClass = m.total_return_pct >= 0 ? 'text-green' : 'text-red';
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric-card">
+      <div class="m-label">Total Return</div>
+      <div class="m-value ${retClass}">${m.total_return_pct >= 0 ? '+' : ''}${m.total_return_pct.toFixed(2)}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Final Capital</div>
+      <div class="m-value">${formatPrice(m.final_capital)}</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Total Trades</div>
+      <div class="m-value">${m.total_trades}</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Win Rate</div>
+      <div class="m-value ${m.win_rate >= 50 ? 'text-green' : 'text-red'}">${m.win_rate.toFixed(1)}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Sharpe Ratio</div>
+      <div class="m-value ${m.sharpe_ratio >= 1 ? 'text-green' : m.sharpe_ratio >= 0 ? '' : 'text-red'}">${m.sharpe_ratio.toFixed(3)}</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Max Drawdown</div>
+      <div class="m-value text-red">${m.max_drawdown_pct.toFixed(2)}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Profit Factor</div>
+      <div class="m-value ${m.profit_factor >= 1 ? 'text-green' : 'text-red'}">${m.profit_factor}</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Wins / Losses</div>
+      <div class="m-value">${m.win_trades} / ${m.loss_trades}</div>
+    </div>
+  `;
+
+  // Charts
+  const eqData = JSON.parse(data.equity_chart);
+  Plotly.newPlot('equityChart', eqData.data, eqData.layout, {responsive:true, displayModeBar:false});
+
+  const tdData = JSON.parse(data.trade_dist_chart);
+  if (tdData.data) Plotly.newPlot('tradeDistChart', tdData.data, tdData.layout, {responsive:true, displayModeBar:false});
+
+  // Trade table
+  const tbody = document.getElementById('tradeBody');
+  tbody.innerHTML = data.trades.map((t, i) => `
+    <tr>
+      <td class="text-muted">${i+1}</td>
+      <td>${t.entry_date}</td>
+      <td>${t.exit_date}</td>
+      <td class="font-mono">${formatPrice(t.entry_price)}</td>
+      <td class="font-mono">${formatPrice(t.exit_price)}</td>
+      <td class="font-mono">${t.position_size}</td>
+      <td class="font-mono ${t.pnl >= 0 ? 'text-green' : 'text-red'}">${t.pnl >= 0 ? '+' : ''}${formatPrice(t.pnl)}</td>
+      <td class="${t.return_pct >= 0 ? 'text-green' : 'text-red'}">${t.return_pct >= 0 ? '+' : ''}${t.return_pct.toFixed(2)}%</td>
+      <td><span class="badge ${t.exit_reason === 'Take Profit' ? 'badge-green' : t.exit_reason === 'Stop Loss' ? 'badge-red' : 'badge-gray'}">${t.exit_reason}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function loadPrevResult(id) {
+  showLoading('Loading result...');
+  const resp = await fetch(`/api/backtest/result/${id}`);
+  const data = await resp.json();
+  hideLoading();
+  currentResultId = id;
+  renderResults(data);
+  document.getElementById('btResults').scrollIntoView({behavior:'smooth'});
+}
+
+function exportCSV() {
+  if (!currentResultId) { showToast('Run a backtest first', 'warning'); return; }
+  window.location.href = `/api/reports/export/${currentResultId}`;
+}
+
+function resetResults() {
+  document.getElementById('btResults').style.display = 'none';
+  currentResultId = null;
+}
+
+// Autocomplete Logic for Backtesting
+let btSearchTimer = null;
+const btSearchInput = document.getElementById('btSymbolSearchInput');
+const btSearchResults = document.getElementById('btSearchResults');
+const btHiddenInput = document.getElementById('btSymbol');
+
+function setBtSymbol(sym, name) {
+  btHiddenInput.value = sym;
+  btSearchInput.value = name ? `${sym} - ${name}` : sym;
+  btSearchResults.style.display = 'none';
+  loadMiniChart(sym);
+}
+
+async function loadMiniChart(symbol) {
+  const container = document.getElementById('btMiniChartContainer');
+  container.style.display = 'block';
+  
+  try {
+    const res = await fetch('/api/market-data', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ symbol, period: '1mo', interval: '1d', indicators: [] })
+    });
+    const data = await res.json();
+    if (data.error) return;
+
+    const info = data.info;
+    const up = info.change_pct >= 0;
+    document.getElementById('miniSymbol').textContent = info.symbol;
+    document.getElementById('miniPrice').textContent = '$' + info.last_close.toLocaleString();
+    document.getElementById('miniPrice').className = up ? 'text-green' : 'text-red';
+
+    const chartData = JSON.parse(data.chart);
+    // Simplify layout for mini chart
+    const miniLayout = {
+      ...chartData.layout,
+      height: 120,
+      margin: { t: 0, r: 0, b: 0, l: 0 },
+      xaxis: { ...chartData.layout.xaxis, visible: false },
+      yaxis: { ...chartData.layout.yaxis, visible: false },
+      showlegend: false,
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+    };
+    
+    // Only keep the main candlestick/line trace
+    const miniData = chartData.data.slice(0, 1);
+    
+    Plotly.newPlot('btMiniChart', miniData, miniLayout, { staticPlot: true });
+  } catch(e) {
+    console.error('Mini chart failed', e);
+  }
+}
+
+function runWithSymbol(sym) {
+  setBtSymbol(sym);
+  runBacktest();
+}
+
+btSearchInput.addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(btSearchTimer);
+  if(q.length < 2) { btSearchResults.style.display = 'none'; return; }
+  
+  btSearchTimer = setTimeout(async () => {
+    try {
+      btSearchResults.innerHTML = '<div style="padding:10px; color:var(--text-muted); text-align:center;"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+      btSearchResults.style.display = 'block';
+      const res = await fetch(`/api/market/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      
+      if(data.length === 0) {
+        btSearchResults.innerHTML = '<div style="padding:10px; color:var(--text-muted); text-align:center;">No assets found</div>';
+        return;
+      }
+      
+      btSearchResults.innerHTML = data.map(item => `
+        <div onclick="setBtSymbol('${item.symbol}', '${item.name.replace(/'/g,"\\'").replace(/"/g,"\\\"")}')" 
+             style="padding:10px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"
+             onmouseover="this.style.background='rgba(88, 166, 255, 0.1)'" onmouseout="this.style.background='transparent'">
+          <div>
+            <div style="font-weight:bold; color:var(--text-primary);">${item.symbol}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${item.name}</div>
+          </div>
+          <div style="font-size:11px; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">
+            ${item.exchange}
+          </div>
+        </div>
+      `).join('');
+    } catch(err) {
+      btSearchResults.innerHTML = '<div style="padding:10px; color:var(--accent-red); text-align:center;">Search failed</div>';
+    }
+  }, 400);
+});
+
+document.addEventListener('click', (e) => {
+  if(!btSearchInput.contains(e.target) && !btSearchResults.contains(e.target)) {
+    btSearchResults.style.display = 'none';
+  }
+});
+
+btSearchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') runBacktest();
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const targetSymbol = localStorage.getItem('tradeEdgeTargetSymbol');
+  const targetStrategy = localStorage.getItem('tradeEdgeTargetStrategy');
+  
+  if (targetSymbol) {
+    setBtSymbol(targetSymbol);
+    localStorage.removeItem('tradeEdgeTargetSymbol');
+    
+    if (targetStrategy) {
+       // Map strategy name to type if needed, or just search
+       const stratLower = targetStrategy.toLowerCase();
+       const select = document.getElementById('btStratType');
+       if (stratLower.includes('rsi')) select.value = 'rsi';
+       else select.value = 'sma'; // Default
+       
+       toggleBtParams();
+       localStorage.removeItem('tradeEdgeTargetStrategy');
+       
+       // Trigger run after a small delay to let mini chart start loading
+       setTimeout(runBacktest, 300);
+    }
+  }
+});
+</script>
+{% endblock %}

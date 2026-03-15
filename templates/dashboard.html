@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}Overview{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon green" style="background: rgba(0,212,170,0.1) !important;"><i class="fas fa-wallet"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Total Backtests</div>
+        <div class="stat-value">{{ stats.total_backtests }}</div>
+        <div class="stat-sub">Simulations run</div>
+      </div>
+    </div>
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon blue" style="background: rgba(88,166,255,0.1) !important;"><i class="fas fa-code-branch"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Saved Strategies</div>
+        <div class="stat-value">{{ stats.total_strategies }}</div>
+        <div class="stat-sub">Active strategies</div>
+      </div>
+    </div>
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon purple" style="background: rgba(188,140,255,0.1) !important;"><i class="fas fa-chart-line"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Platform</div>
+        <div class="stat-value">Ready</div>
+        <div class="stat-sub">All modules active</div>
+      </div>
+    </div>
+    <div class="stat-card premium-stat-card">
+      <div class="stat-icon orange" style="background: rgba(247,144,0,0.1) !important;"><i class="fas fa-shield-halved"></i></div>
+      <div class="stat-body">
+        <div class="stat-label">Risk Engine</div>
+        <div class="stat-value">Online</div>
+        <div class="stat-sub">Position sizing active</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Market Recommendations Panel -->
+  <div class="card glass-panel" style="margin-top: 10px; margin-bottom: 5px;">
+    <div class="card-body" style="padding: 30px;">
+      <!-- Big Dashboard Search Bar -->
+      <div style="margin-bottom: 25px; text-align: center;">
+        <h2 class="gradient-text-animated" style="font-size: 28px; margin-bottom: 18px; font-weight: 700;">Search Market & Analyze</h2>
+        <div style="display: flex; gap: 12px; max-width: 650px; margin: 0 auto; position: relative;">
+          <i class="fas fa-search" style="position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--accent-blue);"></i>
+          <input type="text" id="dashSymbolSearchInput" class="form-input bhokali-glow-input" placeholder="Search 100,000+ Stocks, Crypto, Forex..." 
+                 autocomplete="off" style="padding: 16px 16px 16px 50px; font-size: 17px; border-radius: 12px; height: 55px;">
+          <input type="hidden" id="dashSymbolInput">
+          <button class="btn btn-primary" onclick="goToMarket()" style="padding: 0 35px; font-size: 16px; border-radius: 12px; height: 55px; box-shadow: 0 4px 15px rgba(0,212,170,0.4);">
+            <i class="fas fa-bolt"></i> Analyze
+          </button>
+          
+          <div id="dashSearchResults" class="search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#0d1117; border:1px solid rgba(255,255,255,0.1); border-radius:12px; z-index:100; max-height:300px; overflow-y:auto; box-shadow:0 15px 35px rgba(0,0,0,0.6); padding: 8px; margin-top: 5px; text-align: left;">
+            <!-- Dropdown items here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Auto Recommendations -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 10px;">
+        <h4 style="margin: 0; font-size: 15px; color: var(--text-primary);"><i class="fas fa-fire" style="color:#ff6b6b"></i> Top Movers</h4>
+        <select id="marketCategory" class="form-select" style="width: auto; padding: 6px 12px; font-size: 13px; background: var(--bg-hover);" onchange="loadRecommendations()">
+          <option value="gainers">🔥 Top Gainers</option>
+          <option value="losers">📉 Top Losers</option>
+          <option value="indian">Indian Stocks (NSE)</option>
+          <option value="ev">⚡ EV Sector</option>
+          <option value="it">💻 IT Sector</option>
+          <option value="health">🏥 Healthcare</option>
+          <option value="auto">🚗 Automobile</option>
+          <option value="edu">🎓 Education</option>
+          <option value="us">🇺🇸 US Stocks</option>
+          <option value="crypto">🪙 Crypto</option>
+          <option value="forex">💱 Forex</option>
+        </select>
+      </div>
+      <div id="recContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+        <!-- Loaded via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Two Column Row -->
+  <div class="two-col-grid">
+    <!-- Recent Backtest Results -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-flask"></i> Recent Backtests</h3>
+        <a href="{{ url_for('backtesting') }}" class="btn btn-sm btn-ghost">View All</a>
+      </div>
+      <div class="card-body no-pad">
+        {% if recent_results %}
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Period</th>
+                <th>Return %</th>
+                <th>Trades</th>
+                <th>Run At</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in recent_results %}
+              <tr onclick="goToMarket('{{ r.symbol }}')" style="cursor: pointer;" title="Analyze {{ r.symbol }} on chart" onmouseover="this.style.background='rgba(88, 166, 255, 0.05)'" onmouseout="this.style.background='transparent'">
+                <td><span class="badge badge-blue">{{ r.symbol }}</span></td>
+                <td>{{ r.period }}</td>
+                <td class="{{ 'text-green' if r.metrics.total_return_pct >= 0 else 'text-red' }}">
+                  {{ '%+.2f'|format(r.metrics.total_return_pct) }}%
+                </td>
+                <td>{{ r.metrics.total_trades }}</td>
+                <td class="text-muted">{{ r.run_at }}</td>
+                <td>
+                  <button class="btn btn-xs btn-ghost" onclick="loadResultDetail({{ r.id }})">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty-state">
+            <i class="fas fa-flask"></i>
+            <p>No backtests yet. <a href="{{ url_for('backtesting') }}">Run your first one!</a></p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Saved Strategies -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-code-branch"></i> Strategies</h3>
+        <a href="{{ url_for('strategy_builder') }}" class="btn btn-sm btn-ghost">New Strategy</a>
+      </div>
+      <div class="card-body no-pad">
+        {% if strategies %}
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Type</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              {% for s in strategies %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td><span class="badge {{ 'badge-green' if s.strategy_type == 'sma' else 'badge-orange' }}">
+                  {{ s.strategy_type.upper() }}
+                </span></td>
+                <td>
+                  <button class="btn btn-xs btn-primary" onclick="runTestForStrategy('{{ s.name }}', '{{ s.params.symbol if s.params and s.params.symbol else 'AAPL' }}')" title="Quick Backtest">
+                    <i class="fas fa-play"></i> Test
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="empty-state">
+            <i class="fas fa-code-branch"></i>
+            <p>No strategies saved yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Backtest Chart (shows last result if any) -->
+  <div class="card" id="dashEquityCard" style="display:none">
+    <div class="card-header">
+      <h3><i class="fas fa-chart-area"></i> Latest Equity Curve</h3>
+    </div>
+    <div class="card-body">
+      <div id="dashEquityChart" style="height:350px"></div>
+    </div>
+  </div>
+  
+  <!-- Module Quick Access -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-grid-2"></i> Quick Access</h3>
+    </div>
+    <div class="card-body">
+      <div class="quick-links">
+        <a href="{{ url_for('market') }}" class="quick-link">
+          <div class="ql-icon blue"><i class="fas fa-chart-candlestick"></i></div>
+          <span>Market Data</span>
+        </a>
+        <a href="{{ url_for('strategy_builder') }}" class="quick-link">
+          <div class="ql-icon green"><i class="fas fa-code-branch"></i></div>
+          <span>Strategy Builder</span>
+        </a>
+        <a href="{{ url_for('backtesting') }}" class="quick-link">
+          <div class="ql-icon purple"><i class="fas fa-flask"></i></div>
+          <span>Backtesting</span>
+        </a>
+        <a href="{{ url_for('risk_management') }}" class="quick-link">
+          <div class="ql-icon orange"><i class="fas fa-shield-halved"></i></div>
+          <span>Risk Manager</span>
+        </a>
+        <a href="{{ url_for('reports') }}" class="quick-link">
+          <div class="ql-icon pink"><i class="fas fa-file-chart-column"></i></div>
+          <span>Reports</span>
+        </a>
+        <a href="{{ url_for('settings') }}" class="quick-link">
+          <div class="ql-icon gray"><i class="fas fa-gear"></i></div>
+          <span>Settings</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function goToMarket(sym, name) {
+  const symbol = sym || document.getElementById('dashSymbolInput').value.trim();
+  if (!symbol) {
+    const fallback = document.getElementById('dashSymbolSearchInput').value.split(' - ')[0].trim();
+    if(fallback) return goToMarket(fallback.toUpperCase());
+    return showToast('Enter a symbol to search', 'warning');
+  }
+  localStorage.setItem('tradeEdgeTargetSymbol', symbol);
+  window.location.href = "{{ url_for('market') }}";
+}
+
+function runTestForStrategy(stratName, symbol) {
+  localStorage.setItem('tradeEdgeTargetSymbol', symbol);
+  localStorage.setItem('tradeEdgeTargetStrategy', stratName);
+  window.location.href = "{{ url_for('backtesting') }}";
+}
+
+// Autocomplete Logic for Dashboard
+let dashSearchTimer = null;
+const dashSearchInput = document.getElementById('dashSymbolSearchInput');
+const dashSearchResults = document.getElementById('dashSearchResults');
+
+dashSearchInput.addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(dashSearchTimer);
+  if(q.length < 2) { dashSearchResults.style.display = 'none'; return; }
+  
+  dashSearchTimer = setTimeout(async () => {
+    try {
+      dashSearchResults.innerHTML = '<div style="padding:15px; color:var(--text-muted); text-align:center;"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+      dashSearchResults.style.display = 'block';
+      const res = await fetch(`/api/market/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      
+      if(data.length === 0) {
+        dashSearchResults.innerHTML = '<div style="padding:15px; color:var(--text-muted); text-align:center;">No assets found</div>';
+        return;
+      }
+      
+      dashSearchResults.innerHTML = data.map(item => `
+        <div onclick="goToMarket('${item.symbol}', '${item.name.replace(/'/g,"\\'").replace(/"/g,"\\\"")}')" 
+             style="padding:12px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"
+             onmouseover="this.style.background='rgba(88, 166, 255, 0.1)'" onmouseout="this.style.background='transparent'">
+          <div>
+            <div style="font-weight:bold; color:var(--text-primary);">${item.symbol}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${item.name}</div>
+          </div>
+          <div style="font-size:11px; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px;">
+            ${item.exchange}
+          </div>
+        </div>
+      `).join('');
+    } catch(err) {
+      dashSearchResults.innerHTML = '<div style="padding:15px; color:var(--accent-red); text-align:center;">Search failed</div>';
+    }
+  }, 400);
+});
+
+document.addEventListener('click', (e) => {
+  if(!dashSearchInput.contains(e.target) && !dashSearchResults.contains(e.target)) {
+    dashSearchResults.style.display = 'none';
+  }
+});
+
+dashSearchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') goToMarket();
+});
+
+async function loadRecommendations() {
+  const cat = document.getElementById('marketCategory').value;
+  const container = document.getElementById('recContainer');
+  container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 20px; color: var(--text-muted)"><i class="fas fa-circle-notch fa-spin" style="margin-right:8px"></i> Finding the best movers right now...</div>';
+  
+  try {
+    const res = await fetch(`/api/market/recommendations?category=${cat}`);
+    const data = await res.json();
+    if (data.error) {
+      container.innerHTML = `<span class="text-red">Failed to load: ${data.error}</span>`;
+      return;
+    }
+    
+    if (data.assets && data.assets.length === 0) {
+      container.innerHTML = `<span class="text-muted">No data found for this category currently.</span>`;
+      return;
+    }
+    
+    container.innerHTML = data.assets.map(a => {
+      const isUp = a.change_pct >= 0;
+      const colorCls = isUp ? 'text-green' : 'text-red';
+      const glowCls = isUp ? '0 8px 25px rgba(0,212,170,0.15)' : '0 8px 25px rgba(255,77,109,0.15)';
+      const borderCls = isUp ? 'border-color: rgba(0,212,170,0.3)' : 'border-color: rgba(255,77,109,0.3)';
+      const bgCls = isUp ? 'background: linear-gradient(180deg, rgba(0,212,170,0.05) 0%, rgba(20,24,36,0.6) 100%)' : 'background: linear-gradient(180deg, rgba(255,77,109,0.05) 0%, rgba(20,24,36,0.6) 100%)';
+      
+      return `
+        <div class="rec-card" onclick="goToMarket('${a.raw_symbol}')" 
+             style="${bgCls}; border:1px solid rgba(255,255,255,0.05); ${borderCls}; border-radius:12px; padding:15px; cursor:pointer; transition:all 0.3s ease; backdrop-filter: blur(10px);"
+             onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='${glowCls}'; this.style.borderColor='${isUp ? "var(--accent-green)" : "var(--accent-red)"}'"
+             onmouseout="this.style.transform='none'; this.style.boxShadow='none'; this.style.borderColor='rgba(255,255,255,0.05)'">
+          <div style="font-weight:700; font-size:15px; margin-bottom:6px; color: var(--text-primary); letter-spacing: 0.5px;">${a.symbol}</div>
+          <div style="font-size:18px; font-family:'JetBrains Mono', monospace; font-weight:600; margin-bottom:4px;">${formatPrice(a.price)}</div>
+          <div class="${colorCls}" style="font-size:13px; font-weight:600; display:flex; align-items:center; gap:4px;">
+            ${isUp ? '<i class="fas fa-arrow-trend-up"></i>' : '<i class="fas fa-arrow-trend-down"></i>'} 
+            ${Math.abs(a.change_pct).toFixed(2)}%
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch(e) {
+    container.innerHTML = `<span class="text-red">Error fetching data</span>`;
+  }
+}
+
+// Load last backtest equity if available
+{% if recent_results %}
+const lastId = {{ recent_results[0].id }};
+(async () => {
+  try {
+    const r = await fetch(`/api/backtest/result/${lastId}`);
+    const d = await r.json();
+    if (d.equity_chart) {
+      const card = document.getElementById('dashEquityCard');
+      card.style.display = 'block';
+      Plotly.newPlot('dashEquityChart', JSON.parse(d.equity_chart).data, JSON.parse(d.equity_chart).layout, {responsive:true, displayModeBar:false});
+    }
+  } catch(e) {}
+})();
+{% endif %}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('marketCategory').value = 'gainers';
+  loadRecommendations();
+});
+</script>
+{% endblock %}

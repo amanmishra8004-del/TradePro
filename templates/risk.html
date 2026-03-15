@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Risk Management{% endblock %}
+{% block page_title %}Risk Management{% endblock %}
+{% block breadcrumb %}Trading → Risk Management{% endblock %}
+
+{% block content %}
+<div class="risk-layout">
+
+  <!-- Position Calculator -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-shield-halved"></i> Position Size Calculator</h3>
+    </div>
+    <div class="card-body">
+      <div class="risk-intro">
+        <p>Calculate optimal position size based on your risk tolerance. Never risk more than you can afford to lose.</p>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Account Capital ($)</label>
+          <input type="number" id="rCapital" class="form-input" value="100000" placeholder="100000">
+        </div>
+        <div class="form-group">
+          <label>Risk per Trade (%)</label>
+          <div class="input-slider-group">
+            <input type="range" id="rRiskSlider" min="0.1" max="10" step="0.1" value="1"
+              oninput="document.getElementById('rRiskPct').value = this.value; calculate()">
+            <input type="number" id="rRiskPct" class="form-input" value="1" min="0.1" max="100" step="0.1"
+              oninput="document.getElementById('rRiskSlider').value = this.value; calculate()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Entry Price ($)</label>
+          <input type="number" id="rEntry" class="form-input" value="100" placeholder="e.g. 150.00">
+        </div>
+        <div class="form-group">
+          <label>Stop Loss (%)</label>
+          <div class="input-slider-group">
+            <input type="range" id="rSlSlider" min="0.1" max="20" step="0.1" value="2"
+              oninput="document.getElementById('rStopLoss').value = this.value; calculate()">
+            <input type="number" id="rStopLoss" class="form-input" value="2" min="0.1" max="50" step="0.1"
+              oninput="document.getElementById('rSlSlider').value = this.value; calculate()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Take Profit (%)</label>
+          <div class="input-slider-group">
+            <input type="range" id="rTpSlider" min="0.1" max="50" step="0.1" value="4"
+              oninput="document.getElementById('rTakeProfit').value = this.value; calculate()">
+            <input type="number" id="rTakeProfit" class="form-input" value="4" min="0.1" max="200" step="0.1"
+              oninput="document.getElementById('rTpSlider').value = this.value; calculate()">
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="calculate()">
+          <i class="fas fa-calculator"></i> Calculate
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk Output Cards -->
+  <div id="riskResultSection" style="display:none">
+    <div class="risk-metrics-grid" id="riskMetrics"></div>
+
+    <!-- Trade Visualization -->
+    <div class="card">
+      <div class="card-header"><h3><i class="fas fa-chart-line"></i> Trade Levels</h3></div>
+      <div class="card-body">
+        <div id="tradeLevelsChart" style="height:280px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk Rules Reference -->
+  <div class="card">
+    <div class="card-header"><h3><i class="fas fa-book-open"></i> Risk Management Rules</h3></div>
+    <div class="card-body">
+      <div class="rules-grid">
+        <div class="rule-ref-card">
+          <div class="rr-icon green"><i class="fas fa-percent"></i></div>
+          <h4>1-2% Rule</h4>
+          <p>Never risk more than 1-2% of total capital on a single trade. This ensures survival through losing streaks.</p>
+        </div>
+        <div class="rule-ref-card">
+          <div class="rr-icon blue"><i class="fas fa-balance-scale"></i></div>
+          <h4>Risk/Reward Ratio</h4>
+          <p>Aim for at least 1:2 risk/reward ratio. If you risk $100, target at least $200 profit. Minimum: 1:1.5</p>
+        </div>
+        <div class="rule-ref-card">
+          <div class="rr-icon orange"><i class="fas fa-shield-halved"></i></div>
+          <h4>Stop Loss Always</h4>
+          <p>Always set a stop loss before entering a trade. Never move it against you. The stop is sacred.</p>
+        </div>
+        <div class="rule-ref-card">
+          <div class="rr-icon purple"><i class="fas fa-chart-pie"></i></div>
+          <h4>Portfolio Diversification</h4>
+          <p>Limit total portfolio risk exposure. Don't have more than 6 correlated positions open simultaneously.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function calculate() {
+  const payload = {
+    capital: parseFloat(document.getElementById('rCapital').value),
+    risk_pct: parseFloat(document.getElementById('rRiskPct').value),
+    entry_price: parseFloat(document.getElementById('rEntry').value),
+    stop_loss_pct: parseFloat(document.getElementById('rStopLoss').value),
+    take_profit_pct: parseFloat(document.getElementById('rTakeProfit').value),
+  };
+  if (!payload.entry_price || payload.entry_price <= 0) { 
+      return; 
+  }
+
+  try {
+      const resp = await fetch('/api/risk/calculate', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      const d = await resp.json();
+      if (d.error) { showToast(d.error, 'error'); return; }
+    
+      document.getElementById('riskResultSection').style.display = 'block';
+    
+      document.getElementById('riskMetrics').innerHTML = `
+        <div class="metric-card">
+          <div class="m-label">Risk Amount</div>
+          <div class="m-value text-red">$${d.risk_amount.toLocaleString()}</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-label">Position Size</div>
+          <div class="m-value">${d.position_size} units</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-label">Position Value</div>
+          <div class="m-value">$${d.position_value.toLocaleString()}</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-label">Stop Loss Price</div>
+          <div class="m-value text-red">$${d.stop_loss_price}</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-label">Take Profit Price</div>
+          <div class="m-value text-green">$${d.take_profit_price}</div>
+        </div>
+        <div class="metric-card">
+          <div class="m-label">Risk/Reward Ratio</div>
+          <div class="m-value ${d.risk_reward_ratio >= 1.5 ? 'text-green' : 'text-red'}">1 : ${d.risk_reward_ratio}</div>
+        </div>
+      `;
+    
+      // Trade levels chart
+      const fig = {
+        data: [
+          {type:'scatter', x:['Entry','Stop Loss','Take Profit'],
+           y:[d.entry_price, d.stop_loss_price, d.take_profit_price],
+           mode:'markers+lines+text',
+           text:[`Entry $${d.entry_price}`, `SL $${d.stop_loss_price}`, `TP $${d.take_profit_price}`],
+           textposition:['top center','bottom center','top center'],
+           marker:{size:14, color:['#ffd32a','#ff4d6d','#00d4aa']},
+           line:{color:'#555'}}
+        ],
+        layout:{
+          template:'plotly_dark', paper_bgcolor:'#0d1117', plot_bgcolor:'#0d1117',
+          font:{family:'Inter',color:'#c9d1d9'},
+          margin:{l:20,r:20,t:20,b:40},
+          yaxis:{gridcolor:'#21262d'},
+          xaxis:{gridcolor:'#21262d'},
+          showlegend:false
+        }
+      };
+      Plotly.newPlot('tradeLevelsChart', fig.data, fig.layout, {responsive:true, displayModeBar:false});
+  } catch (err) {
+      console.error(err);
+  }
+}
+
+// Auto calculate on any input change
+['rCapital','rRiskPct','rEntry','rStopLoss','rTakeProfit'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => setTimeout(calculate, 300));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Check local storage for quick action target
+    const targetSymbol = localStorage.getItem('tradeEdgeTargetSymbol');
+    if (targetSymbol) {
+        localStorage.removeItem('tradeEdgeTargetSymbol');
+        // Let the user know the context 
+        document.getElementById('rEntry').placeholder = `Current price for ${targetSymbol}`;
+    }
+    calculate();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block breadcrumb %}Analytics → Reports{% endblock %}
+
+{% block content %}
+<div class="reports-layout">
+
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-file-chart-column"></i> Backtest Reports</h3>
+    </div>
+    <div class="card-body no-pad">
+      {% if results %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Symbol</th>
+            <th>Period</th>
+            <th>Return %</th>
+            <th>Trades</th>
+            <th>Win Rate</th>
+            <th>Sharpe</th>
+            <th>Drawdown</th>
+            <th>PF</th>
+            <th>Final Capital</th>
+            <th>Run At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in results %}
+          <tr>
+            <td class="text-muted">#{{ r.id }}</td>
+            <td><span class="badge badge-blue">{{ r.symbol }}</span></td>
+            <td>{{ r.period }}</td>
+            <td class="{{ 'text-green' if r.metrics.total_return_pct >= 0 else 'text-red' }}">
+              {{ '%+.2f'|format(r.metrics.total_return_pct) }}%
+            </td>
+            <td>{{ r.metrics.total_trades }}</td>
+            <td class="{{ 'text-green' if r.metrics.win_rate >= 50 else 'text-red' }}">
+              {{ r.metrics.win_rate }}%
+            </td>
+            <td>{{ r.metrics.sharpe_ratio }}</td>
+            <td class="text-red">{{ r.metrics.max_drawdown_pct }}%</td>
+            <td class="{{ 'text-green' if r.metrics.profit_factor >= 1 else 'text-red' }}">
+              {{ r.metrics.profit_factor }}
+            </td>
+            <td class="font-mono">${{ '{:,.2f}'.format(r.metrics.final_capital) }}</td>
+            <td class="text-muted">{{ r.run_at }}</td>
+            <td>
+              <button class="btn btn-xs btn-ghost" onclick="viewReport({{ r.id }})" title="View Preview">
+                <i class="fas fa-eye"></i>
+              </button>
+              <a href="/api/reports/export/{{ r.id }}" class="btn btn-xs btn-primary" title="Download Bhokali Report" target="_blank">
+                <i class="fas fa-file-pdf"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-file-chart-column"></i>
+        <p>No backtest reports yet. <a href="{{ url_for('backtesting') }}">Run your first backtest!</a></p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div id="reportDetail" style="display:none">
+    <div class="two-col-grid">
+      <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-area"></i> Equity Curve</h3></div>
+        <div class="card-body no-pad-top"><div id="reportEquityChart" style="height:300px"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3><i class="fas fa-chart-bar"></i> P&L Distribution</h3></div>
+        <div class="card-body no-pad-top"><div id="reportDistChart" style="height:300px"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function viewReport(id) {
+  showLoading('Loading report...');
+  const resp = await fetch(`/api/backtest/result/${id}`);
+  const data = await resp.json();
+  hideLoading();
+
+  const detail = document.getElementById('reportDetail');
+  detail.style.display = 'block';
+  detail.scrollIntoView({behavior:'smooth'});
+
+  const eqData = JSON.parse(data.equity_chart);
+  Plotly.newPlot('reportEquityChart', eqData.data, eqData.layout, {responsive:true, displayModeBar:false});
+  const tdData = JSON.parse(data.trade_dist_chart);
+  if (tdData.data) Plotly.newPlot('reportDistChart', tdData.data, tdData.layout, {responsive:true, displayModeBar:false});
+}
+</script>
+{% endblock %}
