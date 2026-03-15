@@ -233,22 +233,28 @@
         }
         .carousel-track {
             display: flex;
-            transition: transform 0.6s cubic-bezier(0.7, 0, 0.3, 1);
             width: 500%;
-            animation: slideCarousel 7.5s infinite ease-in-out; /* 1.5s per image */
+            animation: slideCarousel 15s infinite cubic-bezier(0.85, 0, 0.15, 1); /* Faster total but smoother flow */
         }
         .carousel-slide {
             width: 20%;
             position: relative;
             flex-shrink: 0;
+            overflow: hidden;
         }
         .carousel-slide img {
             width: 100%;
-            height: 380px; /* Ultra-snappy professional height */
+            height: 380px; 
             object-fit: cover;
             display: block;
-            filter: brightness(0.9);
-            transition: 0.5s;
+            filter: brightness(0.85); /* Slightly darker for better overlay contrast */
+            /* Subtle Ken Burns Zoom Effect */
+            animation: kenBurns 15s infinite alternate linear;
+        }
+
+        @keyframes kenBurns {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
         }
         .carousel-overlay {
             position: absolute;
@@ -270,11 +276,12 @@
         }
 
         @keyframes slideCarousel {
-            0%, 15% { transform: translateX(0); }
-            20%, 35% { transform: translateX(-20%); }
-            40%, 55% { transform: translateX(-40%); }
-            60%, 75% { transform: translateX(-60%); }
-            80%, 95% { transform: translateX(-80%); }
+            /* Smooth transitions: 20% pause, 5% slide */
+            0%, 18% { transform: translateX(0); }
+            20%, 38% { transform: translateX(-20%); }
+            40%, 58% { transform: translateX(-40%); }
+            60%, 78% { transform: translateX(-60%); }
+            80%, 98% { transform: translateX(-80%); }
             100% { transform: translateX(0); }
         }
 
@@ -395,48 +402,4 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
