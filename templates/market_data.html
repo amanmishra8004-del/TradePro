@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Market Data{% endblock %}
 {% block page_title %}Market Data{% endblock %}
-{% block breadcrumb %}Market → Price Chart{% endblock %}
+{% block breadcrumb %}Market → Advanced Chart{% endblock %}
 
 {% block content %}
 <div class="market-layout">
@@ -10,224 +10,178 @@
   <div class="card control-panel">
     <div class="card-body">
       <div class="market-controls">
-        <div class="control-group" style="position: relative;">
-          <label>Search Asset / Stock</label>
+        <div class="control-group" style="position: relative; flex: 1; max-width: 600px;">
+          <label>Search Global Markets</label>
           <div class="input-with-icon">
             <i class="fas fa-search"></i>
-            <input type="text" id="symbolSearchInput" class="form-input" placeholder="Search 100,000+ Stocks..." autocomplete="off">
-            <input type="hidden" id="symbolInput" value="AAPL">
+            <input type="text" id="symbolSearchInput" class="form-input bhokali-glow-input" placeholder="Search Stocks, Crypto, Forex (e.g. BTCUSDT, RELIANCE, AAPL)..." autocomplete="off">
+            <input type="hidden" id="symbolInput" value="BINANCE:BTCUSDT">
           </div>
-          <div id="searchResults" class="search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#0d1117; border:1px solid rgba(255,255,255,0.1); border-radius:8px; z-index:100; max-height:250px; overflow-y:auto; box-shadow:0 10px 25px rgba(0,0,0,0.5); padding: 5px;">
+          <div id="searchResults" class="search-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#0d1117; border:1px solid rgba(255,255,255,0.1); border-radius:12px; z-index:100; max-height:300px; overflow-y:auto; box-shadow:0 15px 35px rgba(0,0,0,0.6); padding: 8px; margin-top: 5px;">
             <!-- Append items here -->
           </div>
         </div>
-        <div class="control-group">
-          <label>Period</label>
-          <select id="periodSelect" class="form-select">
-            <option value="1mo">1 Month</option>
-            <option value="3mo">3 Months</option>
-            <option value="6mo">6 Months</option>
-            <option value="1y" selected>1 Year</option>
-            <option value="2y">2 Years</option>
-            <option value="5y">5 Years</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label>Interval</label>
-          <select id="intervalSelect" class="form-select">
-            <option value="1d" selected>Daily</option>
-            <option value="1wk">Weekly</option>
-            <option value="1mo">Monthly</option>
-            <option value="1h">Hourly</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label>Indicators</label>
-          <div class="indicator-checkboxes">
-            <label class="cb-label"><input type="checkbox" value="SMA20"> SMA20</label>
-            <label class="cb-label"><input type="checkbox" value="SMA50"> SMA50</label>
-            <label class="cb-label"><input type="checkbox" value="SMA200"> SMA200</label>
-            <label class="cb-label"><input type="checkbox" value="EMA20"> EMA20</label>
-            <label class="cb-label"><input type="checkbox" value="EMA50"> EMA50</label>
-            <label class="cb-label"><input type="checkbox" value="RSI"> RSI</label>
-            <label class="cb-label"><input type="checkbox" value="MACD"> MACD</label>
-            <label class="cb-label"><input type="checkbox" value="BB"> Bollinger</label>
-          </div>
-        </div>
-        <div class="control-actions" style="margin-left: auto; display: flex; gap: 10px;">
-          <button class="btn btn-primary" id="fetchBtn" onclick="fetchMarketData()">
-            <i class="fas fa-chart-candlestick"></i> Fetch Data
+        
+        <div class="control-actions" style="margin-left: auto; display: flex; gap: 10px; align-items: flex-end;">
+          <button class="btn btn-primary" id="fetchBtn" onclick="updateChartFromSearch()" style="height: 42px;">
+            <i class="fas fa-bolt"></i> Analyze Asset
           </button>
-          <button class="btn btn-secondary" onclick="openSaveStrategyModal()">
-            <i class="fas fa-save"></i> Save Strategy
+          <button class="btn btn-secondary" onclick="performAction('backtest')" style="height: 42px;">
+            <i class="fas fa-flask"></i> Backtest
           </button>
-          <button class="btn btn-primary" onclick="saveDrawings()" title="Save persistent lines/markings on this chart">
-            <i class="fas fa-file-signature"></i> Save Analysis
-          </button>
-          <button class="btn btn-danger" id="deleteAnalysisBtn" style="display:none;" onclick="deleteCurrentAnalysis()" title="Permanently delete this saved analysis">
-            <i class="fas fa-trash-can"></i>
+          <button class="btn btn-secondary" onclick="performAction('risk')" style="height: 42px;">
+            <i class="fas fa-shield-halved"></i> Risk Manager
           </button>
         </div>
       </div>
 
-      <!-- Market Recommendations -->
-      <div class="market-recommendations" style="margin-top: 25px;">
+      <!-- Quick Ticker Suggestions -->
+      <div class="market-recommendations" style="margin-top: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <h4 style="margin: 0; font-size: 15px; color: var(--text-primary);"><i class="fas fa-fire" style="color:#ff6b6b"></i> Top Movers</h4>
-          <select id="marketCategory" class="form-select" style="width: auto; padding: 4px 10px; font-size: 13px;" onchange="loadRecommendations()">
-            <option value="gainers">🔥 Top Gainers</option>
-            <option value="losers">📉 Top Losers</option>
-            <option value="indian">Indian Stocks (NSE)</option>
-            <option value="it">💻 IT Sector</option>
-            <option value="ev">⚡ EV Sector</option>
-            <option value="health">🏥 Healthcare</option>
-            <option value="auto">🚗 Automobile</option>
-            <option value="edu">🎓 Education</option>
-            <option value="us">🇺🇸 US Stocks</option>
-            <option value="crypto">🪙 Cryptocurrency</option>
-            <option value="forex">💱 Forex</option>
-          </select>
+          <h4 style="margin: 0; font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;"><i class="fas fa-fire" style="color:var(--accent-orange)"></i> Popular Assets</h4>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-xs btn-ghost" onclick="loadRecs('crypto')">Crypto</button>
+            <button class="btn btn-xs btn-ghost" onclick="loadRecs('us')">US Stocks</button>
+            <button class="btn btn-xs btn-ghost" onclick="loadRecs('indian')">Indian</button>
+            <button class="btn btn-xs btn-ghost" onclick="loadRecs('forex')">Forex</button>
+          </div>
         </div>
         
-        <div id="recContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+        <div id="recContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
           <!-- Recommendations will render here -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Quote Info Bar -->
-  <div class="quote-info-bar" id="quoteInfoBar" style="display:none">
-    <div class="qi-item">
-      <span class="qi-label">Symbol</span>
-      <span class="qi-value" id="qi-symbol">–</span>
-    </div>
-    <div class="qi-item">
-      <span class="qi-label">Last Price</span>
-      <span class="qi-value" id="qi-price">–</span>
-    </div>
-    <div class="qi-item">
-      <span class="qi-label">Change</span>
-      <span class="qi-value" id="qi-change">–</span>
-    </div>
-    <div class="qi-item">
-      <span class="qi-label">Open</span>
-      <span class="qi-value" id="qi-open">–</span>
-    </div>
-    <div class="qi-item">
-      <span class="qi-label">High</span>
-      <span class="qi-value" id="qi-high">–</span>
-    </div>
-    <div class="qi-item">
-      <span class="qi-label">Low</span>
-      <span class="qi-value" id="qi-low">–</span>
-    </div>
-    <div class="qi-item">
-      <span class="qi-label">Volume</span>
-      <span class="qi-value" id="qi-volume">–</span>
-    </div>
-
-    <!-- Quick Actions for selected stock -->
-    <div class="qi-item qi-actions" style="margin-left: auto; border: none; padding-right: 0;">
-      <div style="display: flex; gap: 10px;">
-        <button class="btn btn-primary btn-sm" onclick="performAction('backtest')">
-          <i class="fas fa-flask"></i> Backtest
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="performAction('risk')">
-          <i class="fas fa-shield-halved"></i> Risk
-        </button>
+  <!-- Main Chart Section -->
+  <div class="card chart-card-container" style="border: none; background: transparent;">
+    <div class="card glass-panel" style="padding: 0; overflow: hidden; height: 750px; border: 1px solid var(--border);">
+      <!-- TradingView Widget BEGIN -->
+      <div class="tradingview-widget-container" style="height: 100%; width: 100%;">
+        <div id="tradingview_chart" style="height: 100%; width: 100%;"></div>
       </div>
-    </div>
-  </div>
-
-  <div class="two-col-grid" style="grid-template-columns: 3fr 1fr; gap: 20px; align-items: start;">
-    <!-- Main Chart -->
-    <div class="card chart-card">
-      <div class="card-header">
-        <h3 id="chartTitle"><i class="fas fa-chart-candlestick"></i> Technical Analysis</h3>
-      </div>
-      <div class="card-body no-pad" style="position: relative;">
-        <div id="drawToolbar" style="position: absolute; top: 12px; right: 12px; z-index: 5; display: flex; gap: 6px; background: rgba(5,8,16,0.85); backdrop-filter: blur(10px); padding: 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
-          <div style="display: flex; gap: 4px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 6px; margin-right: 2px;">
-            <button class="btn btn-xs btn-ghost" onclick="setDrawMode('line')" title="Trend Line">L</button>
-            <button class="btn btn-xs btn-ghost" onclick="setDrawMode('rect')" title="Supply/Demand Zone">R</button>
-            <button class="btn btn-xs btn-ghost" onclick="setDrawMode('circle')" title="Mark Point">C</button>
-            <button class="btn btn-xs btn-ghost" onclick="setDrawMode('drawopenpath')" title="Freehand">F</button>
-            <button class="btn btn-xs btn-ghost" onclick="setDrawMode('eraseshape')" title="Eraser" style="color:var(--accent-red)"><i class="fas fa-eraser"></i></button>
-          </div>
-          <div style="display: flex; gap: 4px;">
-            <button class="btn btn-xs btn-ghost" onclick="undoDrawing()" title="Undo Last Drawing" style="color:var(--accent-blue)"><i class="fas fa-undo"></i></button>
-            <button class="btn btn-xs btn-ghost" onclick="clearAllDrawings()" title="Clear All Drawings" style="color:var(--accent-red)"><i class="fas fa-trash-can"></i></button>
-          </div>
-        </div>
-        <div id="marketChart" style="height: 600px; width: 100%;">
-          <div class="empty-state">
-            <i class="fas fa-chart-line"></i>
-            <p>Search for a stock to begin your analysis</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Analysis Sidebar -->
-    <div class="card">
-      <div class="card-header" style="justify-content: space-between;">
-        <h3><i class="fas fa-history"></i> My Analysis</h3>
-        <button class="btn btn-icon btn-xs" onclick="loadRecentAnalysis()"><i class="fas fa-rotate"></i></button>
-      </div>
-      <div class="card-body no-pad">
-        <div id="recentAnalysisList" style="max-height: 600px; overflow-y: auto;">
-          <!-- Recent analysis items injected here -->
-          <div style="padding:40px; text-align:center; color:var(--text-muted); font-size:12px;">
-            <i class="fas fa-pencil" style="font-size:24px; margin-bottom:10px; opacity:0.3; display:block;"></i>
-            No saved drawings yet
-          </div>
-        </div>
-      </div>
+      <!-- TradingView Widget END -->
     </div>
   </div>
 
 </div>
 
-<!-- Save Strategy Modal -->
-<div id="saveStratModal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
-  <div class="card" style="width:100%; max-width:400px; background:var(--bg-card); border:1px solid var(--border);">
-    <div class="card-header"><h3>Save Current Strategy</h3></div>
-    <div class="card-body">
-      <p style="font-size:13px; color:var(--text-muted); margin-bottom:15px;">Save the current setup (Symbol + Indicators) as a reusable strategy.</p>
-      <div class="form-group">
-        <label>Strategy Name</label>
-        <input type="text" id="stratNameInput" class="form-input" placeholder="e.g. My AAPL Trend Follower">
-      </div>
-      <div class="btn-row" style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn btn-ghost" onclick="closeSaveStrategyModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmSaveStrategy()">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <script>
+let tvWidget = null;
+let currentSymbol = "BINANCE:BTCUSDT";
+
+function initTradingView(symbol) {
+    currentSymbol = symbol || currentSymbol;
+    
+    // Check if it's an Indian stock selected from our search (usually ends in .NS)
+    // TradingView uses NSE:SYMBOL format
+    let tvSymbol = currentSymbol;
+    if (tvSymbol.endsWith('.NS')) {
+        tvSymbol = 'NSE:' + tvSymbol.replace('.NS', '');
+    } else if (tvSymbol.endsWith('.BO')) {
+        tvSymbol = 'BSE:' + tvSymbol.replace('.BO', '');
+    } else if (tvSymbol.includes('-USD')) {
+        tvSymbol = 'BINANCE:' + tvSymbol.replace('-USD', 'USDT');
+    } else if (tvSymbol.includes('=X')) {
+        tvSymbol = 'FX_IDC:' + tvSymbol.replace('=X', '');
+    }
+
+    tvWidget = new TradingView.widget({
+        "autosize": true,
+        "symbol": tvSymbol,
+        "interval": "D",
+        "timezone": "Etc/UTC",
+        "theme": "dark",
+        "style": "1",
+        "locale": "en",
+        "toolbar_bg": "#0d1117",
+        "enable_publishing": false,
+        "withdateranges": true,
+        "hide_side_toolbar": false,
+        "allow_symbol_change": true,
+        "save_image": true,
+        "details": true,
+        "hotlist": true,
+        "calendar": true,
+        "show_popup_button": true,
+        "popup_width": "1000",
+        "popup_height": "650",
+        "container_id": "tradingview_chart",
+        "studies": [
+            "RSI@tv-basicstudies",
+            "MACD@tv-basicstudies",
+            "MASimple@tv-basicstudies"
+        ],
+        "disabled_features": ["header_saveload"],
+        "enabled_features": ["study_templates"],
+        "overrides": {
+            "paneProperties.background": "#0d1117",
+            "paneProperties.vertGridProperties.color": "rgba(33, 38, 45, 0.5)",
+            "paneProperties.horzGridProperties.color": "rgba(33, 38, 45, 0.5)",
+            "symbolWatermarkProperties.transparency": 90,
+            "scalesProperties.textColor": "#8b949e",
+            "mainSeriesProperties.candleStyle.upColor": "#00d4aa",
+            "mainSeriesProperties.candleStyle.downColor": "#ff4d6d",
+            "mainSeriesProperties.candleStyle.drawWick": true,
+            "mainSeriesProperties.candleStyle.drawBorder": true,
+            "mainSeriesProperties.candleStyle.borderColor": "#30363d",
+            "mainSeriesProperties.candleStyle.borderUpColor": "#00d4aa",
+            "mainSeriesProperties.candleStyle.borderDownColor": "#ff4d6d",
+            "mainSeriesProperties.candleStyle.wickUpColor": "#00d4aa",
+            "mainSeriesProperties.candleStyle.wickDownColor": "#ff4d6d",
+        }
+    });
+}
+
 function setSymbol(sym, name) {
-  document.getElementById('symbolInput').value = sym;
-  document.getElementById('symbolSearchInput').value = name ? `${sym} - ${name}` : sym;
-  document.getElementById('searchResults').style.display = 'none';
-  fetchMarketData();
+    document.getElementById('symbolInput').value = sym;
+    document.getElementById('symbolSearchInput').value = name ? `${sym} - ${name}` : sym;
+    document.getElementById('searchResults').style.display = 'none';
+    
+    // Update TV widget if it exists, otherwise init
+    initTradingView(sym);
+}
+
+function updateChartFromSearch() {
+    const val = document.getElementById('symbolSearchInput').value.split(' - ')[0].trim();
+    if(val) {
+        setSymbol(val.toUpperCase(), '');
+    } else {
+        showToast('Please enter a symbol to analyze', 'warning');
+    }
 }
 
 function performAction(actionStr) {
-  const symbol = document.getElementById('qi-symbol').textContent;
-  if(!symbol || symbol === '–') return;
-  
-  if (actionStr === 'backtest') {
-    localStorage.setItem('tradeEdgeTargetSymbol', symbol);
-    window.location.href = "{{ url_for('backtesting') }}";
-  } else if (actionStr === 'risk') {
-    localStorage.setItem('tradeEdgeTargetSymbol', symbol);
-    window.location.href = "{{ url_for('risk_management') }}";
-  }
+    // Get symbol from input or widget
+    let symbol = document.getElementById('symbolInput').value;
+    if(!symbol || symbol === '–') return;
+    
+    // Clean symbol for yf (backtest / risk engine)
+    let yfSymbol = symbol;
+    if (yfSymbol.includes(':')) {
+        // Handle TV format back to YF format
+        const parts = yfSymbol.split(':');
+        const exch = parts[0];
+        const sym = parts[1];
+        if (exch === 'NSE') yfSymbol = sym + '.NS';
+        else if (exch === 'BSE') yfSymbol = sym + '.BO';
+        else if (exch === 'BINANCE' && sym.endsWith('USDT')) yfSymbol = sym.replace('USDT', '-USD');
+        else if (exch === 'FX_IDC') yfSymbol = sym + '=X';
+        else yfSymbol = sym; // Default fallback
+    }
+    
+    if (actionStr === 'backtest') {
+        localStorage.setItem('tradeEdgeTargetSymbol', yfSymbol);
+        window.location.href = "{{ url_for('backtesting') }}";
+    } else if (actionStr === 'risk') {
+        localStorage.setItem('tradeEdgeTargetSymbol', yfSymbol);
+        window.location.href = "{{ url_for('risk_management') }}";
+    }
 }
 
 // Autocomplete Logic
@@ -236,377 +190,100 @@ const searchInput = document.getElementById('symbolSearchInput');
 const searchResults = document.getElementById('searchResults');
 
 searchInput.addEventListener('input', (e) => {
-  const q = e.target.value.trim();
-  clearTimeout(searchTimer);
-  if(q.length < 2) { searchResults.style.display = 'none'; return; }
-  
-  searchTimer = setTimeout(async () => {
+    const q = e.target.value.trim();
+    clearTimeout(searchTimer);
+    if(q.length < 2) { searchResults.style.display = 'none'; return; }
+    
+    searchTimer = setTimeout(async () => {
+        try {
+            searchResults.innerHTML = '<div style="padding:15px; color:var(--text-muted); text-align:center;"><i class="fas fa-spinner fa-spin"></i> Searching market...</div>';
+            searchResults.style.display = 'block';
+            const res = await fetch(`/api/market/search?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            
+            if(data.length === 0) {
+                searchResults.innerHTML = '<div style="padding:15px; color:var(--text-muted); text-align:center;">No assets found</div>';
+                return;
+            }
+            
+            searchResults.innerHTML = data.map(item => `
+                <div onclick="setSymbol('${item.symbol}', '${item.name.replace(/'/g,"\\'").replace(/"/g,"\\\"")}')" 
+                     style="padding:12px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"
+                     onmouseover="this.style.background='rgba(88, 166, 255, 0.1)'" onmouseout="this.style.background='transparent'">
+                    <div>
+                        <div style="font-weight:bold; color:var(--text-primary);">${item.symbol}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">${item.name}</div>
+                    </div>
+                    <div style="font-size:11px; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px;">
+                        ${item.exchange}
+                    </div>
+                </div>
+            `).join('');
+        } catch(err) {
+            searchResults.innerHTML = '<div style="padding:15px; color:var(--accent-red); text-align:center;">Search failed</div>';
+        }
+    }, 400);
+});
+
+async function loadRecs(cat) {
+    const container = document.getElementById('recContainer');
+    container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 10px; color: var(--text-muted)"><i class="fas fa-spinner fa-spin"></i></div>';
+    
     try {
-      searchResults.innerHTML = '<div style="padding:10px; color:var(--text-muted); text-align:center;"><i class="fas fa-spinner fa-spin"></i> Searching 100k+ assets...</div>';
-      searchResults.style.display = 'block';
-      const res = await fetch(`/api/market/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      
-      if(data.length === 0) {
-        searchResults.innerHTML = '<div style="padding:10px; color:var(--text-muted); text-align:center;">No assets found</div>';
-        return;
-      }
-      
-      searchResults.innerHTML = data.map(item => `
-        <div onclick="setSymbol('${item.symbol}', '${item.name.replace(/'/g,"\\'").replace(/"/g,"\\\"")}')" 
-             style="padding:10px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"
-             onmouseover="this.style.background='rgba(0, 212, 170, 0.1)'" onmouseout="this.style.background='transparent'">
-          <div>
-            <div style="font-weight:bold; color:var(--text-primary);">${item.symbol}</div>
-            <div style="font-size:11px; color:var(--text-muted);">${item.name}</div>
-          </div>
-          <div style="font-size:11px; background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px;">
-            ${item.exchange}
-          </div>
-        </div>
-      `).join('');
-    } catch(err) {
-      searchResults.innerHTML = '<div style="padding:10px; color:#ff4d6d; text-align:center;">Search failed</div>';
+        const res = await fetch(`/api/market/recommendations?category=${cat}`);
+        const data = await res.json();
+        
+        container.innerHTML = data.assets.slice(0, 6).map(a => {
+            const isUp = a.change_pct >= 0;
+            return `
+                <div onclick="setSymbol('${a.raw_symbol}')" 
+                     style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:10px; cursor:pointer; transition:all 0.2s;"
+                     onmouseover="this.style.borderColor='var(--accent-green)'; this.style.transform='translateY(-2px)'"
+                     onmouseout="this.style.borderColor='var(--border)'; this.style.transform='none'">
+                    <div style="font-weight:700; font-size:12px; margin-bottom:2px;">${a.symbol}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-family:var(--font-mono); font-size:12px;">${a.price.toFixed(2)}</span>
+                        <span class="${isUp ? 'text-green' : 'text-red'}" style="font-size:10px; font-weight:600;">
+                            ${isUp?'+':''}${a.change_pct}%
+                        </span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch(e) {
+        container.innerHTML = '';
     }
-  }, 400); // 400ms debounce
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const targetSymbol = localStorage.getItem('tradeEdgeTargetSymbol');
+    if (targetSymbol) {
+        setSymbol(targetSymbol);
+        localStorage.removeItem('tradeEdgeTargetSymbol');
+    } else {
+        initTradingView("BINANCE:BTCUSDT");
+    }
+    loadRecs('gainers');
 });
 
 // Hide dropdown when clicking outside
 document.addEventListener('click', (e) => {
-  if(!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-    searchResults.style.display = 'none';
-  }
+    if(!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.style.display = 'none';
+    }
 });
 
-async function fetchMarketData() {
-  const symbol = document.getElementById('symbolInput').value.trim();
-  if (!symbol) { showToast('Enter a symbol first', 'warning'); return; }
-  
-  const checkboxes = document.querySelectorAll('.indicator-checkboxes input:checked');
-  const indicators = Array.from(checkboxes).map(cb => cb.value);
-  const period = document.getElementById('periodSelect').value;
-  const interval = document.getElementById('intervalSelect').value;
-
-  showLoading('Fetching market data for ' + symbol + '...');
-  try {
-    const resp = await fetch('/api/market-data', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({symbol, period, interval, indicators})
-    });
-    
-    if(!resp.ok) {
-       const errText = await resp.text();
-       throw new Error(`Server returned ${resp.status}: ${errText.includes('<!DOCTYPE') ? 'Service Error' : errText}`);
-    }
-    
-    const data = await resp.json();
-    hideLoading();
-
-    if (data.error) { showToast(data.error, 'error'); return; }
-
-    // Update quote bar
-    const info = data.info;
-    const up = info.change_pct >= 0;
-    document.getElementById('quoteInfoBar').style.display = 'flex';
-    document.getElementById('qi-symbol').textContent = info.symbol;
-    document.getElementById('qi-price').textContent = formatPrice(info.last_close);
-    const changeEl = document.getElementById('qi-change');
-    changeEl.innerHTML = `<span class="${up ? 'text-green' : 'text-red'}">${up?'+':''}${info.change_pct.toFixed(2)}% (${up?'+':''}${info.change.toFixed(2)})</span>`;
-    document.getElementById('qi-open').textContent = formatPrice(info.open);
-    document.getElementById('qi-high').textContent = formatPrice(info.high);
-    document.getElementById('qi-low').textContent = formatPrice(info.low);
-    document.getElementById('qi-volume').textContent = info.volume.toLocaleString();
-    document.getElementById('chartTitle').innerHTML = `<i class="fas fa-chart-candlestick"></i> ${info.symbol} – ${period}`;
-
-    // Render chart with drawing tools enabled
-    const chartData = JSON.parse(data.chart);
-    
-    // Fetch and load annotations
-    const annRes = await fetch(`/api/market/annotations?symbol=${encodeURIComponent(symbol)}`);
-    if(annRes.ok) {
-      const annData = await annRes.json();
-      if(annData.shapes && annData.shapes.length > 0) {
-        chartData.layout.shapes = (chartData.layout.shapes || []).concat(annData.shapes);
-        document.getElementById('deleteAnalysisBtn').style.display = 'flex';
-      } else {
-        document.getElementById('deleteAnalysisBtn').style.display = 'none';
-      }
-    }
-
-    document.getElementById('marketChart').innerHTML = '';
-    const config = {
-      responsive: true,
-      scrollZoom: true,
-      displayModeBar: true,
-      editable: true,
-      modeBarButtonsToAdd: [
-        'drawline',
-        'drawopenpath',
-        'drawclosedpath',
-        'drawcircle',
-        'drawrect',
-        'eraseshape'
-      ]
-    };
-    
-    Plotly.newPlot('marketChart', chartData.data, chartData.layout, config);
-    loadRecentAnalysis(); // Refresh sidebar
-
-    // Listen for drawing changes to push to history
-    const gd = document.getElementById('marketChart');
-    gd.on('plotly_relayout', function(edata){
-      if(edata.shapes || edata['shapes[0].x0'] !== undefined) {
-         pushChartHistory(gd.layout.shapes || []);
-      }
-    });
-    // Initial history state
-    chartShapeHistory = [JSON.parse(JSON.stringify(gd.layout.shapes || []))];
-
-  } catch(e) {
-    hideLoading();
-    showToast('Error: ' + e.message, 'error');
-  }
-}
-
-function undoDrawing() {
-  if (chartShapeHistory.length <= 1) {
-    showToast('Nothing to undo', 'info');
-    return;
-  }
-  chartShapeHistory.pop(); // Remove current state
-  const prevState = chartShapeHistory[chartShapeHistory.length - 1];
-  
-  const gd = document.getElementById('marketChart');
-  Plotly.relayout(gd, { 'shapes': JSON.parse(JSON.stringify(prevState)) });
-  showToast('Task Undone', 'info');
-}
-
-function clearAllDrawings() {
-  const chart = document.getElementById('marketChart');
-  if(!chart._fullLayout) return;
-  pushChartHistory([]); // Add empty state to history
-  Plotly.relayout(chart, { 'shapes': [] });
-  showToast('Chart cleared (unsaved)', 'info');
-}
-
-async function deleteCurrentAnalysis() {
-  const symbol = document.getElementById('qi-symbol').textContent.trim();
-  if(!symbol || symbol === '–') return;
-  
-  if(!confirm(`Delete all saved analysis for ${symbol}?`)) return;
-  
-  try {
-    const res = await fetch(`/api/market/annotations?symbol=${encodeURIComponent(symbol)}`, { method: 'DELETE' });
-    const data = await res.json();
-    showToast(data.message || 'Analysis deleted', 'success');
-    document.getElementById('deleteAnalysisBtn').style.display = 'none';
-    clearAllDrawings();
-    loadRecentAnalysis();
-  } catch(e) {
-    showToast('Failed to delete analysis', 'error');
-  }
-}
-
-async function loadRecentAnalysis() {
-  const container = document.getElementById('recentAnalysisList');
-  if(!container) return;
-  
-  try {
-    const res = await fetch('/api/market/recent-analysis');
-    if(!res.ok) return;
-    const data = await res.json();
-    
-    if(data.length === 0) {
-      container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">No saved analysis yet</div>';
-      return;
-    }
-    
-    container.innerHTML = data.map(item => `
-      <div onclick="setSymbol('${item.symbol}')" 
-           style="padding:12px 16px; cursor:pointer; border-bottom:1px solid var(--border-light); transition:0.2s; display:flex; justify-content:space-between; align-items:center;"
-           onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
-        <div>
-          <div style="font-weight:700; color:var(--accent-green); font-size:14px;">${item.symbol}</div>
-          <div style="font-size:11px; color:var(--text-muted);">${item.updated_at}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px; background:rgba(88,166,255,0.1); color:var(--accent-blue); padding:2px 6px; border-radius:4px; display:inline-block;">
-            ${item.shapes.length} markings
-          </div>
-        </div>
-      </div>
-    `).join('');
-  } catch(e) {
-    container.innerHTML = '<div style="padding:10px; color:var(--accent-red);">Failed to load history</div>';
-  }
-}
-
-// Initial load
-document.addEventListener('DOMContentLoaded', () => {
-    loadRecentAnalysis();
-});
-
-function setDrawMode(mode) {
-  const chart = document.getElementById('marketChart');
-  if(!chart._fullLayout) return;
-  
-  let drawMode = mode;
-  if(mode === 'line') drawMode = 'drawline';
-  
-  Plotly.relayout(chart, { 'dragmode': drawMode });
-}
-
-async function saveDrawings() {
-  const symbol = document.getElementById('qi-symbol').textContent.trim();
-  if(!symbol || symbol === '–') { showToast('No chart loaded', 'warning'); return; }
-  
-  const chart = document.getElementById('marketChart');
-  if(!chart._fullLayout) return;
-  
-  // Plotly user-drawn shapes are in layout.shapes
-  const shapes = chart.layout.shapes || [];
-  
-  showLoading('Saving your markings...');
-  try {
-    const res = await fetch('/api/market/annotations', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ symbol, shapes, name: "Technical Analysis" })
-    });
-    
-    if(!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Server Error');
-    }
-    
-    const data = await res.json();
-    hideLoading();
-    showToast(data.message || 'Drawings saved!', 'success');
-    loadRecentAnalysis();
-  } catch(e) {
-    hideLoading();
-    console.error('Save Error:', e);
-    showToast('Failed to save drawings: ' + e.message, 'error');
-  }
-}
-
-async function loadRecommendations() {
-  const cat = document.getElementById('marketCategory').value;
-  const container = document.getElementById('recContainer');
-  container.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; padding: 20px; color: var(--text-muted)"><i class="fas fa-circle-notch fa-spin"></i> Finding top movers...</div>';
-  
-  try {
-    const res = await fetch(`/api/market/recommendations?category=${cat}`);
-    const data = await res.json();
-    if (data.error) {
-      container.innerHTML = `<span class="text-red">Failed to load: ${data.error}</span>`;
-      return;
-    }
-    
-    if (data.assets.length === 0) {
-      container.innerHTML = `<span class="text-muted">No data found for this category currently.</span>`;
-      return;
-    }
-    
-    container.innerHTML = data.assets.map(a => {
-      const isUp = a.change_pct >= 0;
-      const colorCls = isUp ? 'text-green' : 'text-red';
-      const glowCls = isUp ? '0 4px 12px rgba(0,212,170,0.1)' : '0 4px 12px rgba(255,77,109,0.1)';
-      const borderCls = isUp ? 'border-bottom: 2px solid var(--accent-green)' : 'border-bottom: 2px solid var(--accent-red)';
-      
-      return `
-        <div class="rec-card" onclick="setSymbol('${a.raw_symbol}')" 
-             style="background:rgba(255,255,255,0.02); border:1px solid var(--border); ${borderCls}; border-radius:8px; padding:12px; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s;"
-             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='${glowCls}'"
-             onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
-          <div style="font-weight:600; font-size:14px; margin-bottom:4px;">${a.symbol}</div>
-          <div style="font-size:16px; font-family:'JetBrains Mono', monospace;">${a.price.toFixed(2)}</div>
-          <div class="${colorCls}" style="font-size:12px; margin-top:4px;">
-            ${isUp ? '<i class="fas fa-arrow-up"></i>' : '<i class="fas fa-arrow-down"></i>'} 
-            ${Math.abs(a.change_pct).toFixed(2)}%
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-  } catch(e) {
-    container.innerHTML = `<span class="text-red">Error fetching data</span>`;
-  }
-}
-
-// Search Input Enter key fallback
-document.getElementById('symbolSearchInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-      // If user presses enter on text input without picking dropdown
-      const val = e.target.value.split(' - ')[0].trim();
-      if(val) setSymbol(val.toUpperCase(), '');
-  }
-});
-
-// Strategy Saving Logic
-function openSaveStrategyModal() {
-  const symbol = document.getElementById('qi-symbol').textContent;
-  if(!symbol || symbol === '–') { showToast('Load a chart first', 'warning'); return; }
-  document.getElementById('saveStratModal').style.display = 'flex';
-  document.getElementById('stratNameInput').focus();
-}
-
-function closeSaveStrategyModal() {
-  document.getElementById('saveStratModal').style.display = 'none';
-}
-
-async function confirmSaveStrategy() {
-  const name = document.getElementById('stratNameInput').value.trim();
-  if(!name) { showToast('Enter a strategy name', 'warning'); return; }
-  
-  const symbol = document.getElementById('qi-symbol').textContent;
-  const checkboxes = document.querySelectorAll('.indicator-checkboxes input:checked');
-  const indicators = Array.from(checkboxes).map(cb => cb.value);
-  const period = document.getElementById('periodSelect').value;
-  const interval = document.getElementById('intervalSelect').value;
-
-  const payload = {
-    name: name,
-    strategy_type: "custom_setup",
-    params: { symbol, indicators, period, interval }
-  };
-
-  try {
-    const res = await fetch('/api/strategy/save', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    });
-    const d = await res.json();
-    if(d.error) { showToast(d.error, 'error'); return; }
-    
-    showToast('Strategy saved successfully!', 'success');
-    closeSaveStrategyModal();
-  } catch(err) {
-    showToast('Failed to save strategy', 'error');
-  }
-}
-
-// Auto-load on page ready
-document.addEventListener('DOMContentLoaded', () => {
-    const targetSymbol = localStorage.getItem('tradeEdgeTargetSymbol');
-    if (targetSymbol) {
-      document.getElementById('symbolInput').value = targetSymbol;
-      document.getElementById('symbolSearchInput').value = targetSymbol;
-      localStorage.removeItem('tradeEdgeTargetSymbol');
-    } else {
-      document.getElementById('symbolSearchInput').value = document.getElementById('symbolInput').value;
-    }
-    fetchMarketData();
-    // Default load gainers instead of generic Indian stocks string for wow factor
-    document.getElementById('marketCategory').value = 'gainers';
-    loadRecommendations();
-    
-    // Listen for currency change to re-render
-    window.addEventListener('storage', (e) => {
-       if(e.key === 'tradeEdgeCurrency') fetchMarketData();
-    });
+searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') updateChartFromSearch();
 });
 </script>
 {% endblock %}
+
+
+
+
+
+
+
+
+
